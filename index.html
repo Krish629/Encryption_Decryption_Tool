@@ -1,0 +1,2013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>CipherVault Pro</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zxcvbn/4.4.2/zxcvbn.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root{
+  --card-radius:14px;
+  --muted:#9fc7d5;
+  --accent-dark1:#00d4ff;
+  --accent-dark2:#0066cc;
+  --accent-light1:#ff8ba7;
+  --accent-light2:#7b61ff;
+  --bg-dark-1:#071226;
+  --bg-dark-2:#0f2740;
+  --bg-light-1:#fff7f2;
+  --bg-light-2:#f3f0ff;
+  --text-light:#e6eef7;
+  --text-dark:#07212a;
+  --ripple-encrypt:rgba(0,212,255,0.14);
+  --ripple-decrypt:rgba(255,140,100,0.14);
+}
+
+html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial}
+body{margin:0;min-height:100vh;color:var(--text-light);overflow-x:hidden;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--bg-dark-1),var(--bg-dark-2));transition:background 1200ms cubic-bezier(.2,.9,.2,1),color 600ms ease}
+#bgCanvas{position:fixed;inset:0;z-index:0;display:block;transition:opacity 900ms ease; will-change: transform}
+#bgOverlay{position:fixed;inset:0;z-index:1;pointer-events:none;background:transparent;transition:background 1200ms ease}
+#lock3d{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%) scale(.85);z-index:2;width:220px;height:220px;pointer-events:none;opacity:.08;transition:opacity 600ms ease,transform 700ms cubic-bezier(.2,.9,.2,1);transform-style:preserve-3d;display:flex;align-items:center;justify-content:center}
+.lock-body{width:110px;height:82px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));box-shadow:0 12px 40px rgba(0,0,0,0.45),inset 0 -6px 18px rgba(0,0,0,0.12);display:flex;align-items:center;justify-content:center;position:relative;transform:translateZ(18px);border:1px solid rgba(255,255,255,0.04)}
+.lock-shackle{width:84px;height:56px;border-radius:50px;border:8px solid rgba(255,255,255,0.06);position:absolute;top:-34px;left:50%;transform:translateX(-50%);box-shadow:0 8px 22px rgba(0,0,0,0.28);background:transparent}
+.lock-keyhole{width:18px;height:28px;border-radius:4px;background:linear-gradient(180deg,#000,#333);box-shadow:inset 0 2px 4px rgba(255,255,255,0.06)}
+.lock-glow{position:absolute;inset:-20px;border-radius:50%;filter:blur(28px);opacity:0;transition:opacity 380ms ease,transform 700ms ease;pointer-events:none}
+#lock3d.lock-active{opacity:.18;transform:translate(-50%,-50%) scale(1)}
+#lock3d.lock-active .lock-body{animation:lock-rotate 1400ms cubic-bezier(.2,.9,.2,1) infinite}
+@keyframes lock-rotate{0%{transform:translateZ(18px) rotateY(0) rotateX(0)}50%{transform:translateZ(22px) rotateY(18deg) rotateX(8deg)}100%{transform:translateZ(18px) rotateY(0) rotateX(0)}}
+@media(max-width:900px){#lock3d{width:160px;height:160px}.lock-body{width:90px;height:68px}}
+
+@keyframes float {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(2deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes wave {
+  0% { transform: translateX(-100%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-15px); }
+  100% { transform: translateX(0%) translateY(0); }
+}
+
+@keyframes morph {
+  0% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+  50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+  100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.33); opacity: 1; }
+  80%, 100% { transform: scale(2.8); opacity: 0; }
+}
+
+@keyframes slide-in-up {
+  0% { transform: translateY(40px) rotateX(10deg); opacity: 0; }
+  100% { transform: translateY(0) rotateX(0); opacity: 1; }
+}
+
+@keyframes slide-in-right {
+  0% { transform: translateX(40px) rotateY(10deg); opacity: 0; }
+  100% { transform: translateX(0) rotateY(0); opacity: 1; }
+}
+
+@keyframes success-burst {
+  0% { transform: scale(0) rotate(0deg); opacity: 0; }
+  50% { transform: scale(1.3) rotate(180deg); opacity: 1; }
+  100% { transform: scale(1) rotate(360deg); opacity: 1; }
+}
+
+@keyframes liquid {
+  0% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transform: rotate(0deg); }
+  50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; transform: rotate(180deg); }
+  100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transform: rotate(360deg); }
+}
+
+@keyframes glow-pulse {
+  0% { box-shadow: 0 0 5px rgba(0, 212, 255, 0.5); }
+  50% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.8), 0 0 30px rgba(0, 212, 255, 0.4); }
+  100% { box-shadow: 0 0 5px rgba(0, 212, 255, 0.5); }
+}
+
+@keyframes neon-flicker {
+  0%, 100% { opacity: 1; }
+  41.99% { opacity: 1; }
+  42% { opacity: 0.8; }
+  43% { opacity: 1; }
+  47.99% { opacity: 1; }
+  48% { opacity: 0.9; }
+  49% { opacity: 1; }
+}
+
+@keyframes rotate-3d {
+  0% { transform: perspective(1000px) rotateY(0deg); }
+  100% { transform: perspective(1000px) rotateY(360deg); }
+}
+
+@keyframes bounce-in-3d {
+  0% { transform: perspective(1000px) scale(0.3) rotateX(90deg); opacity: 0; }
+  50% { transform: perspective(1000px) scale(1.05) rotateX(0deg); opacity: 1; }
+  70% { transform: perspective(1000px) scale(0.9) rotateX(0deg); }
+  100% { transform: perspective(1000px) scale(1) rotateX(0deg); opacity: 1; }
+}
+
+.processing-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.processing-shimmer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+  z-index: 1;
+}
+
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.4); }
+  70% { box-shadow: 0 0 0 15px rgba(0, 212, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0); }
+}
+
+@keyframes pulse-glow-decrypt {
+  0% { box-shadow: 0 0 0 0 rgba(255, 140, 100, 0.4); }
+  70% { box-shadow: 0 0 0 15px rgba(255, 140, 100, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 140, 100, 0); }
+}
+
+@keyframes bounce-in {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.container{position:relative;z-index:6;width:100%;max-width:1400px;display:flex;flex-direction:column;gap:20px;padding:20px;align-items:center;pointer-events:auto;transition:opacity 420ms ease,transform 420ms cubic-bezier(.2,.9,.2,1);max-height:100vh;overflow-y:auto; will-change: transform, opacity}
+.card{background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.02));border-radius:var(--card-radius);padding:18px;box-shadow:0 12px 40px rgba(2,6,23,0.6);backdrop-filter:blur(8px) saturate(120%);color:inherit;transition:all 0.4s cubic-bezier(.2,.9,.2,1);position:relative;overflow:hidden; will-change: transform; transform-style: preserve-3d; perspective: 1000px;}
+.card:hover{transform:translateY(-8px) rotateX(2deg); box-shadow:0 20px 60px rgba(2,6,23,0.8);}
+.card::before{content:"";position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(45deg,transparent 30%,rgba(255,255,255,0.05) 50%,transparent 70%);transform:translateX(-100%);transition:transform 0.6s;z-index:1}
+.card:hover::before{transform:translateX(100%)}
+.logo{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.mark{width:54px;height:54px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#022233;box-shadow:0 8px 30px rgba(0,0,0,0.25);background:linear-gradient(135deg,var(--accent-dark1),var(--accent-dark2));transition:all 0.4s cubic-bezier(.2,.9,.2,1); will-change: transform, box-shadow; transform-style: preserve-3d;}
+.mark:hover{transform: translateY(-8px) scale(1.1) rotateZ(5deg); box-shadow: 0 15px 40px rgba(0,0,0,0.4); animation: glow-pulse 2s infinite;}
+h2{margin:0;font-size:18px}
+p.lead{margin:6px 0 12px;color:var(--muted);font-size:13px}
+
+.drop{border:2px dashed rgba(255,255,255,0.06);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:all .3s cubic-bezier(.2,.9,.2,1);background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);position:relative;overflow:hidden; will-change: transform, box-shadow}
+.drop.dragover{border-color:rgba(0,212,255,0.6);transform:translateY(-6px) scale(1.02);box-shadow:0 15px 40px rgba(0,212,255,0.15); animation: liquid 4s ease-in-out infinite;}
+.drop i{font-size:28px;display:block;margin-bottom:8px;color:var(--accent-dark1);transition:all 0.4s cubic-bezier(.2,.9,.2,1); will-change: transform}
+.drop:hover i{transform: scale(1.2) rotate(10deg); filter: drop-shadow(0 0 10px rgba(0,212,255,0.7));}
+
+.drop-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,212,255,0.4), transparent);
+  transform: scale(0);
+  animation: drop-ripple-effect 0.8s ease-out;
+  pointer-events: none;
+}
+
+@keyframes drop-ripple-effect {
+  to {
+    transform: scale(5);
+    opacity: 0;
+  }
+}
+
+.drop-liquid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(0,212,255,0.1), transparent 40%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.drop:hover .drop-liquid {
+  opacity: 1;
+}
+
+.controls{display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap}
+input[type="password"], input[type="text"], textarea{width:100%;padding:10px;border-radius:8px;border:none;background:rgba(0,0,0,0.25);color:inherit;resize:vertical;box-sizing:border-box;transition:all 0.4s cubic-bezier(.2,.9,.2,1); will-change: all; position: relative;}
+input[type="password"]:focus, input[type="text"]:focus, textarea:focus{background:rgba(0,0,0,0.35);box-shadow:0 0 0 3px rgba(0,212,255,0.4), inset 0 0 20px rgba(0,212,255,0.15);outline:none;transform: translateY(-3px) scale(1.02); border-radius: 10px;}
+textarea{min-height:80px;font-family:monospace;font-size:12px}
+.small{font-size:13px;color:var(--muted)}
+
+.btn{
+  padding:10px 14px;border-radius:9px;border:none;cursor:pointer;
+  background: linear-gradient(135deg,var(--accent-dark1),var(--accent-dark2)) !important;
+  color:#022827 !important;
+  font-weight:700;box-shadow:0 10px 24px rgba(0,0,0,0.32);transition:all 0.3s cubic-bezier(.2,.9,.2,1);position:relative;overflow:visible; will-change: transform, box-shadow; transform-style: preserve-3d;
+}
+.btn:active{transform:translateY(1px) scale(0.98)}
+.btn.warn{background:linear-gradient(135deg,var(--accent-light1),var(--accent-light2)) !important;color:#fff !important}
+.btn.ripple{overflow:visible}
+.btn.rgb-pulse{animation: rgbPulse 3.2s ease-in-out infinite; box-shadow: 0 8px 28px rgba(0,0,0,0.35) !important;}
+.btn.full-width{width:100%;justify-content:center}
+
+.btn:hover{transform: translateY(-4px) scale(1.05) rotateX(-5deg); box-shadow: 0 20px 40px rgba(0,0,0,0.5); filter: brightness(1.1);}
+.btn::after{content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.2) 50%, transparent 70%); transform: translateX(-100%); transition: transform 0.6s;}
+.btn:hover::after{transform: translateX(100%);}
+
+
+.btn.success {
+  animation: success-burst 0.8s ease;
+  background: linear-gradient(135deg, #4caf50, #45a049) !important;
+  box-shadow: 0 0 20px rgba(76, 175, 80, 0.6) !important;
+}
+
+.btn-3d {
+  transform-style: preserve-3d;
+  transition: transform 0.6s;
+}
+
+.btn-3d:hover {
+  transform: rotateY(180deg);
+}
+
+.btn-3d .front, .btn-3d .back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+}
+
+.btn-3d .back {
+  transform: rotateY(180deg);
+}
+
+.back-btn{display:inline-flex;gap:8px;align-items:center;padding:8px 10px;border-radius:8px;font-weight:700;cursor:pointer;border:none;background:linear-gradient(135deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01)) !important;color:var(--muted);box-shadow:0 6px 20px rgba(0,0,0,0.3);transition:all 0.4s cubic-bezier(.2,.9,.2,1); will-change: transform, background}
+.back-btn:hover{background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02)) !important; transform: translateY(-3px) scale(1.05) rotateZ(-3deg);}
+
+.file-list{margin-top:12px;max-height:240px;overflow:auto;padding-right:6px}
+.file-item{display:flex;gap:12px;align-items:center;padding:10px;border-radius:10px;margin-bottom:8px;background:linear-gradient(90deg,rgba(255,255,255,0.01),transparent);transition:all 0.4s cubic-bezier(.2,.9,.2,1);position:relative;overflow:hidden; will-change: transform}
+.file-item:hover{background:linear-gradient(90deg,rgba(255,255,255,0.05),transparent); transform: translateX(5px) scale(1.03) rotateY(5deg); box-shadow: 0 8px 25px rgba(0,0,0,0.2);}
+.file-item::before{content:"";position:absolute;top:0;left:0;width:4px;height:100%;background:var(--accent-dark1);transform: scaleY(0);transition:transform 0.4s cubic-bezier(.2,.9,.2,1)}
+.file-item:hover::before{transform: scaleY(1)}
+.icon{width:44px;height:44px;border-radius:8px;background:rgba(255,255,255,0.02);display:flex;align-items:center;justify-content:center;font-size:18px;transition:all 0.4s cubic-bezier(.2,.9,.2,1); will-change: transform}
+.file-item:hover .icon{transform: scale(1.15) rotate(10deg); background: rgba(255,255,255,0.08); box-shadow: 0 0 15px rgba(0,212,255,0.3);}
+.meta{flex:1;overflow:hidden}
+.name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub{font-size:12px;color:var(--muted)}
+
+.progress-wrap{margin-top:12px;position:relative}
+.progress-bar{height:12px;border-radius:999px;background:rgba(255,255,255,0.06);overflow:hidden;position:relative}
+.progress-bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent-dark1),var(--accent-dark2));transition:width .3s cubic-bezier(.2,.9,.2,1);position:relative; will-change: width}
+.progress-bar>i::after{content:"";position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg,transparent, rgba(255,255,255,0.4), transparent);animation: progress-shimmer 2s infinite}
+@keyframes progress-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.progress-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0,212,255,0.3);
+  animation: pulse-ring 2s infinite;
+}
+
+.progress-liquid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-liquid::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: liquid-progress 3s infinite;
+}
+
+@keyframes liquid-progress {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.right-panel{display:flex;flex-direction:column;gap:14px}
+.panel{padding:18px;border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));box-shadow:0 6px 30px rgba(2,6,23,0.5);min-height:120px;transition:all 0.4s cubic-bezier(.2,.9,.2,1); will-change: transform; transform-style: preserve-3d;}
+.panel:hover{transform: translateY(-5px) scale(1.02) rotateX(2deg); box-shadow: 0 15px 40px rgba(2,6,23,0.7);}
+.heading{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.chip{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.02);color:#cbeaf7;font-weight:600;font-size:13px;transition:all 0.4s cubic-bezier(.2,.9,.2,1); will-change: transform, background}
+.chip:hover{background:rgba(255,255,255,0.05); transform: scale(1.08) rotateZ(2deg); box-shadow: 0 5px 15px rgba(0,212,255,0.3);}
+.downloads{margin-top:10px;display:flex;flex-direction:column;gap:8px;max-height:240px;overflow:auto}
+.theme-toggle{cursor:pointer;padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);transition:all 0.4s cubic-bezier(.2,.9,.2,1); will-change: transform, background}
+.theme-toggle:hover{background:rgba(255,255,255,0.05); transform: scale(1.1) rotate(180deg); box-shadow: 0 0 15px rgba(0,212,255,0.3);}
+
+@media (max-width:980px){.container{padding:16px;gap:12px}.card{padding:12px}}
+@media (max-width:720px){.container{padding:12px;gap:10px}}
+
+.light-mode .mark{background:linear-gradient(135deg,var(--accent-light1),var(--accent-light2));color:#fff;box-shadow:0 6px 20px rgba(123,97,255,0.12)}
+.light-mode .drop{border-color:rgba(0,0,0,0.06);background:linear-gradient(180deg,rgba(2,6,23,0.02),transparent)}
+
+.dashboard{position:fixed;z-index:8;left:50%;top:50%;transform:translate(-50%,-50%);width:720px;max-width:90%;max-height:90vh;display:flex;align-items:center;justify-content:center;padding:30px;margin:20px;pointer-events:auto;transition:opacity 420ms ease,transform 420ms cubic-bezier(.2,.9,.2,1); will-change: transform, opacity}
+.dashboard-card{width:100%;border-radius:18px;padding:36px;background:linear-gradient(180deg,rgba(0,0,0,0.18),rgba(255,255,255,0.02));box-shadow:0 24px 80px rgba(0,0,0,0.6);display:flex;gap:28px;align-items:center;justify-content:space-between;position:relative;overflow:hidden; will-change: transform; transform-style: preserve-3d;}
+.dashboard-card::before{content:"";position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(45deg,transparent 30%,rgba(255,255,255,0.05) 50%,transparent 70%);transform:translateX(-100%);transition:transform 0.6s;z-index:1}
+.dashboard-card:hover::before{transform:translateX(100%)}
+.dash-left{display:flex;gap:18px;align-items:center;flex:1;min-width:0}
+.dash-brand{width:88px;height:88px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;color:#012;background:linear-gradient(135deg,var(--accent-dark1),var(--accent-dark2));box-shadow:0 18px 60px rgba(0,0,0,0.45);transition:all 0.4s cubic-bezier(.2,.9,.2,1); animation: float 4s ease-in-out infinite; will-change: transform; transform-style: preserve-3d;}
+.dash-brand:hover{transform: scale(1.08) rotate(5deg); box-shadow: 0 22px 70px rgba(0,0,0,0.5); animation: glow-pulse 2s infinite;}
+.dash-info{flex:1;min-width:0;color:var(--text-light)}
+.dash-info h1{margin:0;font-size:26px}
+.dash-info p{margin:8px 0 0;color:var(--muted);font-size:14px}
+.dash-actions{display:flex;gap:18px;align-items:center;justify-content:center}
+.dash-btn{min-width:160px;padding:18px 22px;border-radius:14px;font-weight:800;font-size:15px;letter-spacing:.6px;cursor:pointer;border:none;color:#04121a;background:linear-gradient(135deg,#00e0ff,#0077ff);box-shadow:0 16px 48px rgba(0,0,0,0.45),0 6px 18px rgba(0,0,0,0.35);transform:translateY(0);transition:all 0.4s cubic-bezier(.2,.9,.2,1);position:relative;overflow:hidden; will-change: transform, box-shadow; transform-style: preserve-3d;}
+.dash-btn.secondary{background:linear-gradient(135deg,var(--accent-light1),var(--accent-light2));color:#fff}
+.dash-btn .icon{display:inline-block;width:34px;height:34px;border-radius:10px;margin-right:10px;background:rgba(255,255,255,0.85);display:flex;align-items:center;justify-content:center;box-shadow:0 10px 26px rgba(0,0,0,0.28);transition:all 0.4s cubic-bezier(.2,.9,.2,1); will-change: transform}
+.dash-btn:hover .icon{transform: scale(1.1) rotate(10deg); box-shadow: 0 15px 30px rgba(0,0,0,0.4);}
+
+#dashEncrypt .icon i, #dashDecrypt .icon i {
+  font-size: 20px;
+  background: linear-gradient(45deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+  background-size: 400% 400%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: rgbIconAnimation 4s ease infinite;
+}
+
+#dashEncrypt .icon i {
+  animation-duration: 3s;
+}
+#dashDecrypt .icon i {
+  animation-duration: 4s;
+  animation-direction: reverse;
+}
+
+@keyframes rgbIconAnimation {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.dash-btn:hover{box-shadow:0 28px 90px rgba(0,0,0,0.6);transform:translateY(-8px) rotateX(-5deg) scale(1.05); filter: brightness(1.1);}
+.dash-btn::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 20% 20%,rgba(255,255,255,0.06),transparent 30%);opacity:.95}
+.hidden-by-dashboard{opacity:0;pointer-events:none;transform:translateY(18px) scale(.995);filter:blur(6px)}
+.container.mode-encrypt .card.focus-left{box-shadow:0 18px 80px rgba(0,212,255,0.08);transform:translateY(-6px) scale(1.01); animation: pulse-glow 2s infinite}
+.container.mode-decrypt .card.focus-left{box-shadow:0 18px 80px rgba(255,140,100,0.08);transform:translateY(-6px) scale(1.01); animation: pulse-glow-decrypt 2s infinite}
+@media (max-width:720px){.dashboard{width:95%;padding:20px;max-height:95vh}.dashboard-card{flex-direction:column;gap:18px;padding:22px;align-items:stretch}.dash-actions{width:100%;justify-content:space-between}.dash-btn{min-width:48%;font-size:14px;padding:14px 16px}}
+
+.modal-backdrop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:70;background:rgba(0,0,0,0.45)}
+.modal-card{
+  background:rgba(6,10,18,0.96);
+  backdrop-filter:blur(14px) saturate(160%);
+  border-radius:16px;padding:24px;width:min(720px,92%);max-width:720px;transform:translateY(20px) scale(.98);opacity:0;transition:all .4s cubic-bezier(.2,.9,.2,1);color:#e9f1ff;text-shadow:0 0 2px rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.04);box-shadow:0 30px 90px rgba(0,0,0,0.8),inset 0 0 28px rgba(255,255,255,0.03); transform-style: preserve-3d;
+}
+.modal-backdrop.visible .modal-card{transform:translateY(0) scale(1);opacity:1}
+.modal-title{font-size:18px;font-weight:800;margin-bottom:6px}
+.modal-sub{font-size:13px;color:var(--muted);margin-bottom:12px}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+.modal-note{font-size:13px;color:var(--muted)}
+
+.process-modal{position:fixed;top:0;left:0;width:100%;height:100%;display:none;align-items:center;justify-content:center;z-index:100;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px)}
+.process-modal.active{display:flex}
+.process-card{background:rgba(6,10,18,0.95);backdrop-filter:blur(14px) saturate(160%);border-radius:16px;padding:32px 40px;box-shadow:0 30px 90px rgba(0,0,0,0.8),inset 0 0 28px rgba(255,255,255,0.03);display:flex;flex-direction:column;align-items:center;max-width:400px;width:90%;transform:scale(0.9);opacity:0;transition:all 0.4s cubic-bezier(.2,.9,.2,1); transform-style: preserve-3d;}
+.process-modal.active .process-card{transform:scale(1);opacity:1}
+.process-title{font-size:22px;font-weight:700;margin-bottom:24px;color:#fff;text-align:center}
+.process-lock-container{width:120px;height:120px;margin-bottom:24px;position:relative}
+.process-lock{width:100%;height:100%;position:relative}
+.lock-shackle-animated{position:absolute;width:70px;height:45px;border:7px solid rgba(255,255,255,0.8);border-radius:50px;top:-30px;left:50%;transform:translateX(-50%);background:transparent;transition:all 1.5s ease;z-index:2}
+.lock-shackle-animated.locking{transform:translateX(-50%) rotate(0deg);border-color:rgba(255,255,255,0.8)}
+.lock-shackle-animated.unlocking{transform:translateX(-50%) rotate(-30deg);border-color:rgba(255,255,255,0.4)}
+.lock-body-animated{width:80px;height:60px;background:linear-gradient(180deg,rgba(255,255,255,0.1),rgba(255,255,255,0.05));border-radius:8px;position:absolute;top:30px;left:50%;transform:translateX(-50%);box-shadow:0 8px 20px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center}
+.lock-keyhole-animated{width:14px;height:22px;background:linear-gradient(180deg,#000,#333);border-radius:3px}
+.lock-bolt{position:absolute;width:16px;height:6px;background:rgba(255,255,255,0.9);border-radius:3px;top:54px;left:50%;transform:translateX(-50%);transition:all 1.5s ease;z-index:3}
+.lock-bolt.locking{transform:translateX(-50%) translateY(0) rotate(0deg)}
+.lock-bolt.unlocking{transform:translateX(-50%) translateY(-15px) rotate(-15deg)}
+.process-message{font-size:16px;color:var(--muted);text-align:center}
+.process-progress{width:100%;height:6px;background:rgba(255,255,255,0.1);border-radius:3px;margin-top:16px;overflow:hidden}
+.process-progress-bar{height:100%;background:linear-gradient(90deg,var(--accent-dark1),var(--accent-dark2));width:0%;transition:width 0.4s cubic-bezier(.2,.9,.2,1);position:relative; will-change: width}
+.process-progress-bar::after{content:"";position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg,transparent, rgba(255,255,255,0.4), transparent);animation: progress-shimmer 2s infinite}
+
+@keyframes rgbGlow {
+  0%   { box-shadow: 0 6px 18px 2px rgba(255,0,80,0.10), inset 0 0 10px rgba(255,0,80,0.02); border-color: rgba(255,0,80,0.18); }
+  16%  { box-shadow: 0 6px 18px 2px rgba(0,160,255,0.10), inset 0 0 10px rgba(0,160,255,0.02); border-color: rgba(0,160,255,0.18); }
+  33%  { box-shadow: 0 6px 18px 2px rgba(0,255,120,0.10), inset 0 0 10px rgba(0,255,120,0.02); border-color: rgba(0,255,120,0.18); }
+  50%  { box-shadow: 0 6px 18px 2px rgba(180,0,255,0.10), inset 0 0 10px rgba(180,0,255,0.02); border-color: rgba(180,0,255,0.18); }
+  66%  { box-shadow: 0 6px 18px 2px rgba(255,100,0,0.10), inset 0 0 10px rgba(255,100,0,0.02); border-color: rgba(255,100,0,0.18); }
+  83%  { box-shadow: 0 6px 18px 2px rgba(0,200,180,0.10), inset 0 0 10px rgba(0,200,180,0.02); border-color: rgba(0,200,180,0.18); }
+  100% { box-shadow: 0 6px 18px 2px rgba(255,0,80,0.10), inset 0 0 10px rgba(255,0,80,0.02); border-color: rgba(255,0,80,0.18); }
+}
+.rgb-border{
+  border: 1.5px solid rgba(255,255,255,0.04);
+  animation: rgbGlow 5.6s linear infinite;
+  border-radius: 14px;
+  transition: box-shadow .4s cubic-bezier(.2,.9,.2,1), transform .4s cubic-bezier(.2,.9,.2,1);
+}
+@keyframes rgbPulse {
+  0% { filter: drop-shadow(0 0 6px rgba(255,0,80,0.12)); transform: translateY(0); }
+  25% { filter: drop-shadow(0 0 10px rgba(0,160,255,0.14)); transform: translateY(-1px); }
+  50% { filter: drop-shadow(0 0 14px rgba(0,255,120,0.16)); transform: translateY(0); }
+  75% { filter: drop-shadow(0 0 10px rgba(180,0,255,0.14)); transform: translateY(-1px); }
+  100% { filter: drop-shadow(0 0 6px rgba(255,0,80,0.12)); transform: translateY(0); }
+}
+.rgb-pulse{ animation: rgbPulse 3.2s ease-in-out infinite; box-shadow: 0 8px 28px rgba(0,0,0,0.35); border-radius: 10px; }
+.rgb-border:hover{ transform: translateY(-4px) scale(1.02); }
+.file-item.rgb-border{ padding:10px; border-radius:10px; }
+.modal-card.rgb-border{ border-radius:16px; }
+.light-mode .rgb-border{ animation-duration:6s; opacity:0.95; }
+
+.hidden { display:none !important; }
+
+.file-type-select{
+  padding:6px 10px;
+  border-radius:8px;
+  background:rgba(0,100,204,0.4);  
+  color:#e6eef7;
+  border:none;
+  transition: all 0.4s cubic-bezier(.2,.9,.2,1);
+}
+
+.file-type-select:hover {
+  background: rgba(0,100,204,0.6);
+  transform: scale(1.05);
+}
+
+.light-mode {
+  color: var(--text-dark) !important;
+}
+
+.light-mode .card {
+  color: var(--text-dark) !important;
+}
+
+.light-mode .panel {
+  color: var(--text-dark) !important;
+}
+
+.light-mode .modal-card {
+  color: var(--text-dark) !important;
+}
+
+.light-mode .process-card {
+  color: var(--text-dark) !important;
+}
+
+.light-mode .modal-title {
+  color: var(--text-dark) !important;
+}
+
+.light-mode .process-title {
+  color: var(--text-dark) !important;
+}
+
+.light-mode .name {
+  color: var(--text-dark) !important;
+}
+
+.light-mode .dash-info {
+  color: var(--text-dark) !important;
+}
+
+.light-mode .small {
+  color: var(--text-dark) !important;
+}
+
+.light-mode .sub {
+  color: var(--text-dark) !important;
+}
+
+.light-mode .drop i {
+  color: var(--accent-light1) !important;
+}
+
+.light-mode .chip {
+  color: var(--text-dark) !important;
+  background: rgba(0,0,0,0.1) !important;
+}
+
+.light-mode .progress-bar {
+  background: rgba(0,0,0,0.1) !important;
+}
+
+.light-mode .progress-bar > i {
+  background: linear-gradient(90deg,var(--accent-light1),var(--accent-light2)) !important;
+}
+
+.light-mode .process-progress {
+  background: rgba(0,0,0,0.1) !important;
+}
+
+.light-mode .process-progress-bar {
+  background: linear-gradient(90deg,var(--accent-light1),var(--accent-light2)) !important;
+}
+
+.light-mode .modal-note {
+  color: var(--text-dark) !important;
+}
+
+.light-mode .process-message {
+  color: var(--text-dark) !important;
+}
+
+.light-mode .dashboard-card {
+  background: linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0.7)) !important;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.2) !important;
+}
+
+.light-mode .dash-brand {
+  background: linear-gradient(135deg,var(--accent-light1),var(--accent-light2)) !important;
+  color: #fff !important;
+  box-shadow: 0 18px 60px rgba(123,97,255,0.3) !important;
+}
+
+.light-mode .modal-card {
+  background: rgba(255,255,255,0.95) !important;
+  color: var(--text-dark) !important;
+  box-shadow: 0 30px 90px rgba(0,0,0,0.3), inset 0 0 28px rgba(0,0,0,0.03) !important;
+}
+
+.light-mode .process-card {
+  background: rgba(255,255,255,0.95) !important;
+  color: var(--text-dark) !important;
+  box-shadow: 0 30px 90px rgba(0,0,0,0.3), inset 0 0 28px rgba(0,0,0,0.03) !important;
+}
+
+.light-mode .card {
+  background: linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0.7)) !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.2) !important;
+}
+
+.light-mode .panel {
+  background: linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0.7)) !important;
+  box-shadow: 0 6px 30px rgba(0,0,0,0.2) !important;
+}
+
+.light-mode .drop {
+  border-color: rgba(0,0,0,0.1) !important;
+  background: linear-gradient(180deg,rgba(0,0,0,0.02),transparent) !important;
+}
+
+.light-mode .file-item {
+  background: linear-gradient(90deg,rgba(0,0,0,0.02),transparent) !important;
+}
+
+.light-mode input[type="password"], .light-mode input[type="text"], .light-mode textarea {
+  background: rgba(0,0,0,0.1) !important;
+  color: var(--text-dark) !important;
+}
+
+.light-mode .file-type-select {
+  background: rgba(123,97,255,0.2) !important;
+  color: var(--text-dark) !important;
+}
+
+.light-mode .back-btn {
+  background: linear-gradient(135deg,rgba(0,0,0,0.05),rgba(0,0,0,0.02)) !important;
+  color: var(--text-dark) !important;
+}
+
+.light-mode .theme-toggle {
+  background: rgba(0,0,0,0.05) !important;
+}
+
+.light-mode .icon {
+  background: rgba(0,0,0,0.05) !important;
+}
+
+.light-mode .modal-sub {
+  color: var(--text-dark) !important;
+}
+
+.light-mode .modal-actions .btn {
+  color: #fff !important;
+}
+
+.light-mode .modal-actions .btn.warn {
+  color: #fff !important;
+}
+
+.light-mode .lock-body-animated {
+  background: linear-gradient(180deg,rgba(0,0,0,0.2),rgba(0,0,0,0.1)) !important;
+}
+
+.light-mode .lock-keyhole-animated {
+  background: linear-gradient(180deg,rgba(0,0,0,0.8),rgba(0,0,0,0.6)) !important;
+}
+
+.light-mode .lock-shackle-animated {
+  border-color: rgba(0,0,0,0.6) !important;
+}
+
+.light-mode .lock-bolt {
+  background: rgba(0,0,0,0.6) !important;
+}
+
+.light-mode .dashboard-info p {
+  color: var(--text-dark) !important;
+}
+
+.wave-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.03;
+}
+
+.wave-bg::before,
+.wave-bg::after {
+  content: '';
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  top: -50%;
+  left: -50%;
+  background: radial-gradient(circle, var(--accent-dark1) 0%, transparent 70%);
+  animation: wave 20s linear infinite;
+}
+
+.wave-bg::after {
+  animation-delay: -10s;
+  background: radial-gradient(circle, var(--accent-light1) 0%, transparent 70%);
+}
+
+.neon-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.neon-glow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: inherit;
+  filter: blur(10px);
+  opacity: 0.7;
+  z-index: -1;
+}
+
+.neon-glow::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: inherit;
+  filter: blur(20px);
+  opacity: 0.5;
+  z-index: -2;
+}
+
+.flip-card {
+  perspective: 1000px;
+  width: 100%;
+  height: 100%;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.8s;
+  transform-style: preserve-3d;
+}
+
+.flip-card.flipped .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front, .flip-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  border-radius: var(--card-radius);
+  overflow: hidden;
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+}
+
+.floating-particles {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.floating-particle {
+  position: absolute;
+  background: radial-gradient(circle, rgba(255,255,255,0.8), transparent);
+  border-radius: 50%;
+  opacity: 0;
+  animation: float-up 10s linear infinite;
+}
+
+@keyframes float-up {
+  0% {
+    opacity: 0;
+    transform: translateY(100vh) scale(0);
+  }
+  10% {
+    opacity: 0.4;
+  }
+  90% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-100vh) scale(1.5);
+  }
+}
+
+.magnetic-btn {
+  position: relative;
+  transition: all 0.3s cubic-bezier(.2,.9,.2,1);
+}
+
+.magnetic-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+  z-index: -1;
+}
+
+.magnetic-btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.glitch {
+  position: relative;
+  color: white;
+  font-size: 2em;
+  letter-spacing: 0.5em;
+  animation: glitch-skew 1s infinite linear alternate-reverse;
+}
+
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.glitch::before {
+  animation: glitch-1 0.5s infinite linear alternate-reverse;
+  color: #00ffff;
+  z-index: -1;
+}
+
+.glitch::after {
+  animation: glitch-2 0.5s infinite linear alternate-reverse;
+  color: #ff00ff;
+  z-index: -2;
+}
+
+@keyframes glitch-1 {
+  0% {
+    clip: rect(132px, 350px, 101px, 30px);
+  }
+  5% {
+    clip: rect(12px, 350px, 20px, 30px);
+  }
+  10% {
+    clip: rect(50px, 350px, 90px, 30px);
+  }
+  15% {
+    clip: rect(30px, 350px, 70px, 30px);
+  }
+  20% {
+    clip: rect(80px, 350px, 120px, 30px);
+  }
+  25% {
+    clip: rect(100px, 350px, 40px, 30px);
+  }
+  30% {
+    clip: rect(10px, 350px, 80px, 30px);
+  }
+  35% {
+    clip: rect(60px, 350px, 110px, 30px);
+  }
+  40% {
+    clip: rect(20px, 350px, 60px, 30px);
+  }
+  45% {
+    clip: rect(70px, 350px, 100px, 30px);
+  }
+  50% {
+    clip: rect(40px, 350px, 80px, 30px);
+  }
+  55% {
+    clip: rect(90px, 350px, 120px, 30px);
+  }
+  60% {
+    clip: rect(30px, 350px, 70px, 30px);
+  }
+  65% {
+    clip: rect(80px, 350px, 110px, 30px);
+  }
+  70% {
+    clip: rect(20px, 350px, 50px, 30px);
+  }
+  75% {
+    clip: rect(60px, 350px, 90px, 30px);
+  }
+  80% {
+    clip: rect(10px, 350px, 30px, 30px);
+  }
+  85% {
+    clip: rect(50px, 350px, 70px, 30px);
+  }
+  90% {
+    clip: rect(100px, 350px, 40px, 30px);
+  }
+  95% {
+    clip: rect(40px, 350px, 80px, 30px);
+  }
+  100% {
+    clip: rect(80px, 350px, 120px, 30px);
+  }
+}
+
+@keyframes glitch-2 {
+  0% {
+    clip: rect(65px, 350px, 119px, 30px);
+  }
+  5% {
+    clip: rect(95px, 350px, 15px, 30px);
+  }
+  10% {
+    clip: rect(45px, 350px, 75px, 30px);
+  }
+  15% {
+    clip: rect(85px, 350px, 25px, 30px);
+  }
+  20% {
+    clip: rect(15px, 350px, 115px, 30px);
+  }
+  25% {
+    clip: rect(75px, 350px, 35px, 30px);
+  }
+  30% {
+    clip: rect(25px, 350px, 85px, 30px);
+  }
+  35% {
+    clip: rect(115px, 350px, 15px, 30px);
+  }
+  40% {
+    clip: rect(55px, 350px, 95px, 30px);
+  }
+  45% {
+    clip: rect(35px, 350px, 65px, 30px);
+  }
+  50% {
+    clip: rect(95px, 350px, 25px, 30px);
+  }
+  55% {
+    clip: rect(15px, 350px, 75px, 30px);
+  }
+  60% {
+    clip: rect(65px, 350px, 115px, 30px);
+  }
+  65% {
+    clip: rect(25px, 350px, 35px, 30px);
+  }
+  70% {
+    clip: rect(85px, 350px, 85px, 30px);
+  }
+  75% {
+    clip: rect(15px, 350px, 25px, 30px);
+  }
+  80% {
+    clip: rect(55px, 350px, 65px, 30px);
+  }
+  85% {
+    clip: rect(95px, 350px, 15px, 30px);
+  }
+  90% {
+    clip: rect(35px, 350px, 75px, 30px);
+  }
+  95% {
+    clip: rect(75px, 350px, 95px, 30px);
+  }
+  100% {
+    clip: rect(15px, 350px, 35px, 30px);
+  }
+}
+
+@keyframes glitch-skew {
+  0% {
+    transform: skew(0deg);
+  }
+  20% {
+    transform: skew(2deg);
+  }
+  40% {
+    transform: skew(-2deg);
+  }
+  60% {
+    transform: skew(1deg);
+  }
+  80% {
+    transform: skew(-1deg);
+  }
+  100% {
+    transform: skew(0deg);
+  }
+}
+
+.sparkle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 0 10px 2px white;
+  opacity: 0;
+  animation: sparkle 2s linear infinite;
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.loading-dots {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.loading-dots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-dark1);
+  animation: loading-dots 1.4s infinite ease-in-out both;
+}
+
+.loading-dots span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes loading-dots {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+.theme-transition {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.theme-transition.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.liquid-shape {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.1), transparent 40%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.card:hover .liquid-shape,
+.panel:hover .liquid-shape {
+  opacity: 1;
+}
+</style>
+</head>
+<body>
+<div class="wave-bg"></div>
+<div class="floating-particles" id="floatingParticles"></div>
+<canvas id="bgCanvas"></canvas><div id="bgOverlay"></div>
+<div id="lock3d" aria-hidden="true"><div class="lock-glow" id="lockGlow"></div><div class="lock-body" id="lockBody"><div class="lock-shackle" id="lockShackle"></div><div class="lock-keyhole"></div></div></div>
+
+<div class="dashboard" id="dashboard">
+  <div class="dashboard-card rgb-border">
+    <div class="dash-left">
+      <div class="dash-brand" id="brandDash">CV</div>
+      <div class="dash-info">
+        <h1>Vault Pro</h1>
+        <p>Securely encrypt or decrypt files — AES-256, client-only. Choose an operation to begin.</p>
+      </div>
+    </div>
+    <div class="dash-actions" aria-hidden="false">
+      <button id="dashEncrypt" class="dash-btn rgb-pulse magnetic-btn" title="Go to Encryption"><span class="icon"><i class="fa-solid fa-lock"></i></span>ENCRYPTION</button>
+      <button id="dashDecrypt" class="dash-btn secondary rgb-pulse magnetic-btn" title="Go to Decryption"><span class="icon"><i class="fa-solid fa-unlock"></i></span>DECRYPTION</button>
+    </div>
+  </div>
+</div>
+
+<div class="container" id="appContainer">
+  <div class="card rgb-border">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px">
+      <div class="logo" style="margin:0">
+        <div class="mark" id="brandMark">CV</div>
+        <div><h2>Vault Pro</h2><p class="lead">Securely encrypt & decrypt any file in browser — AES-256, PBKDF2, ZIP batching.</p></div>
+      </div>
+      <div id="areaBackContainer" style="display:flex;align-items:center"><button id="areaBackBtn" class="back-btn" style="display:none"><i class="fa-solid fa-arrow-left"></i> Back</button></div>
+    </div>
+
+    <div id="regularSection">
+      <div id="dropArea" class="drop rgb-border" tabindex="0">
+        <div class="drop-liquid"></div>
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <div id="dropText">Drag & drop files here, or click to browse</div>
+        <div style="margin-top:8px;font-size:12px;color:var(--muted)"></div>
+        <input id="fileInput" type="file" multiple style="display:none" />
+      </div>
+
+      <div id="passwordSection">
+        <div style="margin-top:12px" class="small">Password</div>
+        <div class="row controls" style="margin-top:6px">
+          <div style="position:relative;flex:1">
+            <input id="password" type="password" placeholder="Enter a strong password" />
+            <button id="togglePwd" class="btn" style="position:absolute;right:-6px;top:-6px;height:40px;padding:8px 10px;">👁</button>
+          </div>
+          <button id="savePwdBtn" class="btn rgb-pulse" title="Save password as .key (plain text file). Warning displayed.">Save Key</button>
+        </div>
+
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
+          <div class="small">Strength:</div><div id="pwStrength" class="chip">—</div><div style="flex:1"></div><label class="small" style="align-self:center">Encrypted file type:</label>
+          <select id="encType" class="file-type-select" title="Choose extension for encrypted output">
+            <option value=".enc">.enc (default)</option>
+            <option value=".bin">.bin (binary)</option>
+            <option value=".txt">.txt (base64)</option>
+            <option value=".cvlt">.cvlt (CipherVault)</option>
+            <option value=".secure">.secure (secure)</option>
+            <option value=".locked">.locked (locked)</option>
+            <option value=".protected">.protected (protected)</option>
+          </select>
+        </div>
+
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center;"><div style="flex:1"></div><button id="encryptBtn" class="btn ripple rgb-pulse magnetic-btn">Encrypt</button><button id="decryptBtn" class="btn warn ripple rgb-pulse magnetic-btn">Decrypt</button></div>
+      </div>
+
+      <div class="file-list" id="fileList"></div>
+
+      <div class="progress-wrap">
+        <div class="small">Progress</div>
+        <div class="progress-bar" aria-hidden="true" style="margin-top:8px;">
+          <i id="progress" style="width:0%"></i>
+          <div class="progress-liquid"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px">
+          <div class="small" id="progressText">Idle</div>
+          <div class="small" id="progressPct">0%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="panel rgb-border">
+      <div class="heading">
+        <div>
+          <h3 style="margin:0">Operations & Options</h3>
+          <div class="small" style="margin-top:6px">Encrypt to create a secure envelope. Decrypt to extract original files.</div>
+        </div>
+        <div class="settings">
+          <div id="themeToggle" class="theme-toggle" title="Toggle theme">
+            <i id="themeIcon" class="fa-solid fa-moon"></i>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:12px" class="outputs">
+        <div class="chip">AES-256 ×2 + XOR mask</div>
+        <div class="chip">HMAC-SHA256</div>
+        <div class="chip">Zip (JSZip)</div>
+        <div class="chip">Client-only</div>
+      </div>
+    </div>
+
+    <div class="panel rgb-border">
+      <div class="heading">
+        <h4 style="margin:0">Download / Decrypted Files</h4>
+        <div class="small">After decrypt, individual files will be listed here</div>
+      </div>
+      <div class="downloads" id="downloadArea">
+        <div class="small">Nothing yet</div>
+      </div>
+    </div>
+
+    <div class="panel rgb-border" style="min-height:90px">
+      <h4 style="margin:0">Notes & Warnings</h4>
+      <ul style="margin-top:8px;color:var(--muted)">
+        <li>Remember your password — it cannot be recovered.</li>
+        <li>Large files depend on browser/device memory; performance varies.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div id="modalBackdrop" class="modal-backdrop" aria-hidden="true" role="dialog" aria-modal="true">
+  <div class="modal-card rgb-border" id="modalCard">
+    <div class="modal-title" id="modalTitle">Title</div>
+    <div class="modal-sub" id="modalSub">Subtitle</div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
+
+<div id="processModal" class="process-modal">
+  <div class="process-card">
+    <div class="process-title" id="processTitle">Encrypting...</div>
+    <div class="process-lock-container">
+      <div class="process-lock">
+        <div class="lock-shackle-animated" id="processLockShackle"></div>
+        <div class="lock-body-animated">
+          <div class="lock-keyhole-animated"></div>
+        </div>
+        <div class="lock-bolt" id="processLockBolt"></div>
+      </div>
+    </div>
+    <div class="process-message" id="processMessage">
+      Securing your files with AES-256 encryption...
+      <div class="loading-dots">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+    <div class="process-progress">
+      <div class="process-progress-bar" id="processProgressBar"></div>
+    </div>
+  </div>
+</div>
+
+<div class="theme-transition" id="themeTransition"></div>
+
+<script>
+
+(function(){
+document.addEventListener('DOMContentLoaded', () => {
+
+  const dashboardEl = document.getElementById('dashboard');
+  if (dashboardEl) {
+    dashboardEl.style.left = '50%';
+    dashboardEl.style.top = '50%';
+    dashboardEl.style.transform = 'translate(-50%,-50%)';
+  }
+  
+  initFloatingParticles();
+  
+  const enforceBtnStyles = () => {
+    document.querySelectorAll('.btn').forEach(b => {
+      b.style.setProperty('background', 'linear-gradient(135deg,var(--accent-dark1),var(--accent-dark2))', 'important');
+      b.style.setProperty('color', '#022827', 'important');
+    });
+    document.querySelectorAll('.btn.warn').forEach(b => {
+      b.style.setProperty('background', 'linear-gradient(135deg,var(--accent-light1),var(--accent-light2))', 'important');
+      b.style.setProperty('color', '#ffffff', 'important');
+    });
+    document.querySelectorAll('.dash-btn.secondary').forEach(b => {
+      b.style.setProperty('background', 'linear-gradient(135deg,var(--accent-light1),var(--accent-light2))', 'important');
+      b.style.setProperty('color', '#ffffff', 'important');
+    });
+  };
+  enforceBtnStyles();
+  
+  setInterval(enforceBtnStyles, 1200);
+  
+  setTimeout(() => {
+    document.querySelectorAll('.dash-btn').forEach((btn, index) => {
+      setTimeout(() => {
+        btn.style.animation = 'bounce-in-3d 0.7s ease forwards';
+      }, index * 150);
+    });
+  }, 500);
+  
+  document.querySelectorAll('.magnetic-btn').forEach(btn => {
+    btn.addEventListener('mousemove', (e) => {
+      const rect = btn.getBoundingClientRect();
+      const x = e.clientX - rect.left - rect.width / 2;
+      const y = e.clientY - rect.top - rect.height / 2;
+      
+      btn.style.transform = `translate(${x * 0.2}px, ${y * 0.2}px) scale(1.05)`;
+    });
+    
+    btn.addEventListener('mouseleave', () => {
+      btn.style.transform = '';
+    });
+  });
+});
+
+function initFloatingParticles() {
+  const container = document.getElementById('floatingParticles');
+  const particleCount = 20;
+  
+  for (let i = 0; i < particleCount; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'floating-particle';
+    particle.style.left = `${Math.random() * 100}%`;
+    particle.style.animationDelay = `${Math.random() * 10}s`;
+    particle.style.animationDuration = `${10 + Math.random() * 20}s`;
+    particle.style.width = `${2 + Math.random() * 4}px`;
+    particle.style.height = particle.style.width;
+    container.appendChild(particle);
+  }
+}
+
+
+const canvas=document.getElementById('bgCanvas'),ctx=canvas.getContext('2d',{alpha:true}),bgOverlay=document.getElementById('bgOverlay'),lock3d=document.getElementById('lock3d'),lockGlow=document.getElementById('lockGlow');
+let W=canvas.width=window.innerWidth,H=canvas.height=window.innerHeight;
+window.addEventListener('resize',()=>{W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;initParticles()});
+let particles=[],trails=[],connections=[],particleCount=Math.round((W*H)/90000);if(particleCount<20)particleCount=20;if(particleCount>120)particleCount=120;
+let globalState={theme:'dark',activity:'idle',boostTime:0,pointer:{x:-9999,y:-9999,down:false}};
+function colorPaletteForTheme(t){if(t==='dark')return{bgGrad:['#071226','#0f2740'],particles:['#00d4ff','#88f6ff','#00a2ff'],accent:'#00d4ff',overlay:'rgba(3,9,18,0.18)'};return{bgGrad:['#fff7f2','#f3f0ff'],particles:['#ff8ba7','#7b61ff','#ffcd7a'],accent:'#7b61ff',overlay:'rgba(255,255,255,0.06)'}}
+function randomBetween(a,b){return a+Math.random()*(b-a)}
+function initParticles(){particles=[];trails=[];connections=[];particleCount=Math.round((W*H)/90000);if(particleCount<20)particleCount=20;if(particleCount>120)particleCount=120;const p=colorPaletteForTheme(globalState.theme);for(let i=0;i<particleCount;i++){particles.push({x:Math.random()*W,y:Math.random()*H,vx:randomBetween(-.08,.08),vy:randomBetween(-.08,.08),size:randomBetween(.6,2.8),baseSize:randomBetween(.6,2.8),hue:p.particles[Math.floor(Math.random()*p.particles.length)],age:Math.random()*1000,alpha:randomBetween(.04,.35)})}canvas.style.opacity=0;setTimeout(()=>canvas.style.opacity=1,80)}initParticles();let last=performance.now();
+function updateParticles(now){const dt=now-last;last=now;const palette=colorPaletteForTheme(globalState.theme);const boostFactor=(globalState.boostTime>0)?(1+Math.min(globalState.boostTime/900,2.2)):1;const g=ctx.createLinearGradient(0,0,W,H);g.addColorStop(0,palette.bgGrad[0]);g.addColorStop(1,palette.bgGrad[1]);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);ctx.globalCompositeOperation='lighter';
+  
+  connections = [];
+  for(let i = 0; i < particles.length; i++) {
+    for(let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if(dist < 150) {
+        connections.push({
+          from: particles[i],
+          to: particles[j],
+          distance: dist
+        });
+      }
+    }
+  }
+  
+  connections.forEach(conn => {
+    const opacity = (1 - conn.distance / 150) * 0.3;
+    ctx.strokeStyle = hexToRgba(conn.from.hue, opacity);
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(conn.from.x, conn.from.y);
+    ctx.lineTo(conn.to.x, conn.to.y);
+    ctx.stroke();
+  });
+  
+  const pr=100;particles.forEach(p=>{const dx=p.x-globalState.pointer.x,dy=p.y-globalState.pointer.y,dist=Math.sqrt(dx*dx+dy*dy);if(dist<pr){const force=(1-(dist/pr))*0.6;p.vx+=(dx/(dist+0.001))*0.08*force;p.vy+=(dy/(dist+0.001))*0.08*force;if(Math.random()<0.08){trails.push({x:p.x,y:p.y,life:200+Math.random()*200,age:0,hue:p.hue,size:p.size*1.4})}}else{p.vx+=randomBetween(-0.008,0.008)*(p.size/2);p.vy+=Math.sin((now+p.age)/3000)*0.0008}p.vx*=0.99;p.vy*=0.99;p.x+=p.vx*boostFactor*(0.8+(p.size/3));p.y+=p.vy*boostFactor*(0.8+(p.size/4));if(p.x<-30)p.x=W+30;if(p.x>W+30)p.x=-30;if(p.y<-30)p.y=H+30;if(p.y>H+30)p.y=-30;const targetSize=p.baseSize*((globalState.boostTime>0)?(1+Math.min(globalState.boostTime/1600,1.6)):(dist<pr?1.4:1));p.size+=(targetSize-p.size)*0.05;const rad=p.size;const gradient=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,rad*4);const mainColor=p.hue;const aMain=Math.min(0.7*(globalState.boostTime>0?1.6:1),1);gradient.addColorStop(0,hexToRgba(mainColor,aMain));gradient.addColorStop(0.25,hexToRgba(mainColor,Math.min(0.18*(globalState.boostTime>0?1.8:1),0.5)));gradient.addColorStop(1,hexToRgba(mainColor,0));ctx.beginPath();ctx.fillStyle=gradient;ctx.arc(p.x,p.y,rad*4,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.fillStyle=hexToRgba(mainColor,Math.min(0.85,0.4+(p.size/6)));ctx.arc(p.x,p.y,rad,0,Math.PI*2);ctx.fill();p.age+=dt});for(let t=trails.length-1;t>=0;t--){const tr=trails[t];tr.age+=dt;if(tr.age>tr.life){trails.splice(t,1);continue}const alpha=1-(tr.age/tr.life);const sz=tr.size*(1+(tr.age/tr.life)*0.4);const grad=ctx.createRadialGradient(tr.x,tr.y,0,tr.x,tr.y,sz*4);grad.addColorStop(0,hexToRgba(tr.hue,0.25*alpha));grad.addColorStop(0.3,hexToRgba(tr.hue,0.08*alpha));grad.addColorStop(1,hexToRgba(tr.hue,0));ctx.beginPath();ctx.fillStyle=grad;ctx.arc(tr.x,tr.y,sz*4,0,Math.PI*2);ctx.fill()}if(globalState.boostTime>0){for(let i=0;i<6;i++){const sx=Math.random()*W,sy=Math.random()*H,ex=sx+(Math.random()*100-50),ey=sy+(Math.random()*100-50);ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(ex,ey);ctx.strokeStyle=hexToRgba(palette.particles[Math.floor(Math.random()*palette.particles.length)],0.04+Math.random()*0.08);ctx.lineWidth=1+Math.random()*1.5;ctx.stroke()}}if(globalState.boostTime>0){globalState.boostTime-=dt;if(globalState.boostTime<0)globalState.boostTime=0;if(globalState.boostTime===0){globalState.activity='idle';lock3d.classList.remove('lock-active');lockGlow.style.opacity='0'}}ctx.globalCompositeOperation='source-over';requestAnimationFrame(updateParticles)}requestAnimationFrame(updateParticles);
+function triggerParticleBoost(kind='encrypt'){globalState.activity=kind;globalState.boostTime=1200+(kind==='encrypt'?600:300);const palette=colorPaletteForTheme(globalState.theme);for(let i=0;i<particles.length;i++){particles[i].hue=palette.particles[Math.floor(Math.random()*palette.particles.length)]}lock3d.classList.add('lock-active');if(kind==='encrypt'){lockGlow.style.background=`radial-gradient(circle at 50% 50%, ${hexToRgba(palette.accent,0.5)}, ${hexToRgba(palette.particles[0],0.06)})`;lockGlow.style.opacity='0.45'}else{lockGlow.style.background=`radial-gradient(circle at 50% 50%, ${hexToRgba('#8fff80',0.5)}, ${hexToRgba(palette.particles[1],0.06)})`;lockGlow.style.opacity='0.35'}}
+window.addEventListener('pointermove',e=>{globalState.pointer.x=e.clientX;globalState.pointer.y=e.clientY});window.addEventListener('pointerdown',e=>{globalState.pointer.down=true;for(let i=0;i<8;i++){trails.push({x:e.clientX+randomBetween(-15,15),y:e.clientY+randomBetween(-15,15),life:180+Math.random()*180,age:0,hue:colorPaletteForTheme(globalState.theme).particles[Math.floor(Math.random()*3)],size:randomBetween(1.2,3.8)})}setTimeout(()=>globalState.pointer.down=false,150)});window.addEventListener('pointerleave',()=>{globalState.pointer.x=-9999;globalState.pointer.y=-9999});
+function hexToRgba(hex,alpha=1){if(!hex)return`rgba(255,255,255,${alpha})`;if(hex[0]==='#')hex=hex.slice(1);if(hex.length===3)hex=hex.split('').map(c=>c+c).join('');const bigint=parseInt(hex,16);const r=(bigint>>16)&255;const g=(bigint>>8)&255;const b=bigint&255;return`rgba(${r},${g},${b},${alpha})`}
+
+const $=id=>document.getElementById(id);
+function humanSize(bytes){if(bytes===0)return'0 B';const k=1024,sizes=['B','KB','MB','GB','TB'];const i=Math.floor(Math.log(bytes)/Math.log(k));return parseFloat((bytes/Math.pow(k,i)).toFixed(2))+' '+sizes[i]}
+function arrayBufferToBase64(buffer){const bytes=new Uint8Array(buffer);let binary='';const chunk=0x8000;for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunk));return btoa(binary)}
+function base64ToUint8Array(base64){const binary=atob(base64);const len=binary.length;const bytes=new Uint8Array(len);for(let i=0;i<len;i++)bytes[i]=binary.charCodeAt(i);return bytes;}
+function uint8ArrayToWordArray(u8){const words=[];for(let i=0;i<u8.length;i+=4){words.push((u8[i]<<24) | (u8[i+1]<<16) | (u8[i+2]<<8) | (u8[i+3]||0));}return CryptoJS.lib.WordArray.create(words, u8.length);}
+function wordArrayToUint8Array(wordArray){const len = wordArray.sigBytes;const words = wordArray.words;const u8 = new Uint8Array(len);let idx=0;for(let i=0;i<words.length;i++){let w=words[i];u8[idx++]= (w >>> 24) & 0xFF; if(idx>=len) break; u8[idx++]= (w >>> 16) & 0xFF; if(idx>=len) break; u8[idx++]= (w >>> 8) & 0xFF; if(idx>=len) break; u8[idx++]= w & 0xFF; if(idx>=len) break;}return u8;}
+
+function genSaltBase64(){return CryptoJS.enc.Base64.stringify(CryptoJS.lib.WordArray.random(16))}
+function genIVBase64(){return CryptoJS.enc.Base64.stringify(CryptoJS.lib.WordArray.random(16))}
+function deriveKey(password,saltBase64,iterations=150000){const salt=CryptoJS.enc.Base64.parse(saltBase64);return CryptoJS.PBKDF2(password,salt,{keySize:256/32,iterations:iterations,hasher:CryptoJS.algo.SHA256});}
+function hexToBytes(hex){const out=new Uint8Array(Math.ceil(hex.length/2));for(let i=0;i<out.length;i++)out[i]=parseInt(hex.substr(i*2,2),16);return out;}
+function generateMaskBytes(len,password,saltBase64){const mask = new Uint8Array(len);let pos=0;let ctr=0;while(pos<len){const h = CryptoJS.SHA256(password + '::' + (saltBase64||'') + '::' + ctr).toString(CryptoJS.enc.Hex);const chunk = hexToBytes(h);for(let j=0;j<chunk.length && pos<len;j++){mask[pos++]=chunk[j];}ctr++;}return mask;}
+function computeHmacBase64(u8array, hmacKeyWordArray){const wa = uint8ArrayToWordArray(u8array);const mac = CryptoJS.HmacSHA256(wa, hmacKeyWordArray);return mac.toString(CryptoJS.enc.Base64);}
+
+const dropArea=$('dropArea'),fileInput=$('fileInput'),fileList=$('fileList'),passwordInput=$('password'),togglePwd=$('togglePwd'),savePwdBtn=$('savePwdBtn'),encryptBtn=$('encryptBtn'),decryptBtn=$('decryptBtn'),progressEl=$('progress'),progressText=$('progressText'),progressPct=$('progressPct'),pwStrength=$('pwStrength'),downloadArea=$('downloadArea'),themeToggle=$('themeToggle'),themeIcon=$('themeIcon'),encTypeSelect=$('encType');
+const dashboardEl=$('dashboard'),dashEncryptBtn=$('dashEncrypt'),dashDecryptBtn=$('dashDecrypt'),appContainer=$('appContainer'),areaBackBtn=$('areaBackBtn'),areaBackContainer=$('areaBackContainer');
+
+const processModal=$('processModal'),processTitle=$('processTitle'),processMessage=$('processMessage'),processProgressBar=$('processProgressBar'),processLockShackle=$('processLockShackle'),processLockBolt=$('processLockBolt');
+let selectedFiles=[];let currentMode=null;
+let processModalTimeout = null; 
+
+
+function showProcessModal(isEncrypting) {
+  
+  if (processModalTimeout) {
+    clearTimeout(processModalTimeout);
+    processModalTimeout = null;
+  }
+  
+  processTitle.textContent = isEncrypting ? 'Encrypting...' : 'Decrypting...';
+  processMessage.innerHTML = isEncrypting ? 
+    'Securing your files with AES-256 encryption...' : 
+    'Unlocking your files with password verification...';
+  
+  const dotsContainer = document.createElement('div');
+  dotsContainer.className = 'loading-dots';
+  dotsContainer.innerHTML = '<span></span><span></span><span></span>';
+  processMessage.appendChild(dotsContainer);
+  
+  if (isEncrypting) {
+    
+    processLockShackle.classList.remove('locking');
+    processLockShackle.classList.add('unlocking');
+    processLockBolt.classList.remove('locking');
+    processLockBolt.classList.add('unlocking');
+  } else {
+    
+    processLockShackle.classList.remove('unlocking');
+    processLockShackle.classList.add('locking');
+    processLockBolt.classList.remove('unlocking');
+    processLockBolt.classList.add('locking');
+  }
+  
+  processModal.classList.add('active');
+  processProgressBar.style.width = '0%';
+  
+  setTimeout(() => {
+    if (isEncrypting) {
+      
+      processLockShackle.classList.remove('unlocking');
+      processLockShackle.classList.add('locking');
+      processLockBolt.classList.remove('unlocking');
+      processLockBolt.classList.add('locking');
+    } else {
+      
+      processLockShackle.classList.remove('locking');
+      processLockShackle.classList.add('unlocking');
+      processLockBolt.classList.remove('locking');
+      processLockBolt.classList.add('unlocking');
+    }
+  }, 300);
+  
+  processModalTimeout = setTimeout(() => {
+    hideProcessModal();
+  }, 5000);
+}
+
+function updateProcessModalProgress(pct, text) {
+  processProgressBar.style.width = pct + '%';
+  processMessage.innerHTML = text + '<div class="loading-dots"><span></span><span></span><span></span></div>';
+}
+
+function hideProcessModal() {
+  processModal.classList.remove('active');
+  
+  if (processModalTimeout) {
+    clearTimeout(processModalTimeout);
+    processModalTimeout = null;
+  }
+}
+
+async function processInChunks(array, chunkSize, processor) {
+  const results = [];
+  for (let i = 0; i < array.length; i += chunkSize) {
+    const chunk = array.slice(i, i + chunkSize);
+    const result = await processor(chunk);
+    results.push(result);
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+  return results;
+}
+
+function fileIconForName(name){const ext=(name.split('.').pop()||'').toLowerCase();if(/png|jpe?g|gif|webp|bmp/.test(ext))return'<i class="fa-regular fa-image"></i>';if(/pdf/.test(ext))return'<i class="fa-regular fa-file-pdf"></i>';if(/zip|rar|7z/.test(ext))return'<i class="fa-solid fa-box-archive"></i>';if(/txt|md|json|csv|xml/.test(ext))return'<i class="fa-regular fa-file-lines"></i>';if(/mp3|wav|flac/.test(ext))return'<i class="fa-solid fa-file-audio"></i>';if(/mp4|mkv|mov|webm/.test(ext))return'<i class="fa-solid fa-file-video"></i>';return'<i class="fa-regular fa-file"></i>'}
+
+function renderFileList(){if(selectedFiles.length===0){fileList.innerHTML=`<div class="small" style="padding:10px">No files selected</div>`;return}fileList.innerHTML='';selectedFiles.forEach((f,idx)=>{const div=document.createElement('div');div.className='file-item rgb-border';div.style.opacity='0';div.style.transform='translateY(30px) rotateX(10deg)';div.innerHTML=`<div class="icon">${fileIconForName(f.name)}</div><div class="meta"><div class="name">${f.name}</div><div class="sub">${f.type||'Unknown type'} • ${humanSize(f.size)}</div></div><div style="display:flex;gap:8px;align-items:center"><button class="btn" data-idx="${idx}" title="Remove file" style="background:rgba(255,255,255,0.02); color:#cbeaf7; padding:8px 9px"><i class="fa-solid fa-trash"></i></button></div>`;fileList.appendChild(div);setTimeout(()=>{div.style.transition='all 0.5s cubic-bezier(.2,.9,.2,1)';div.style.opacity='1';div.style.transform='translateY(0) rotateX(0)';}, idx * 100)});fileList.querySelectorAll('button[data-idx]').forEach(b=>{b.addEventListener('click',()=>{const idx=parseInt(b.getAttribute('data-idx'),10);selectedFiles.splice(idx,1);renderFileList()})})}
+
+passwordInput.addEventListener('input',()=>{const v=passwordInput.value||'';if(!v){pwStrength.innerText='—';pwStrength.style.background='';pwStrength.style.color='';return}const r=zxcvbn(v);const s=r.score;const labels=['Very weak','Weak','Okay','Strong','Very strong'];const colors=['#ff5252','#ff8a65','#ffd54f','#66bb6a','#00e676'];pwStrength.innerText=labels[s];pwStrength.style.background=colors[s];pwStrength.style.color='#022'});togglePwd.addEventListener('click',()=>{if(passwordInput.type==='password'){passwordInput.type='text';togglePwd.innerText='🙈'}else{passwordInput.type='password';togglePwd.innerText='👁'}})
+
+let light=false;function applyTheme(){const p=colorPaletteForTheme(light?'light':'dark');if(light){document.body.style.background=`linear-gradient(135deg, ${p.bgGrad[0]}, ${p.bgGrad[1]})`;document.body.classList.add('light-mode');document.body.style.color=getComputedStyle(document.documentElement).getPropertyValue('--text-dark');themeIcon.className='fa-solid fa-sun';globalState.theme='light'}else{document.body.style.background=`linear-gradient(135deg, ${p.bgGrad[0]}, ${p.bgGrad[1]})`;document.body.classList.remove('light-mode');document.body.style.color=getComputedStyle(document.documentElement).getPropertyValue('--text-light');themeIcon.className='fa-solid fa-moon';globalState.theme='dark'}bgOverlay.style.background=p.overlay;lockGlow.style.background=`radial-gradient(circle at 50% 50%, ${hexToRgba(p.accent,0.12)}, transparent)`;canvas.style.opacity=0;setTimeout(()=>{initParticles()},220);setTimeout(()=>{canvas.style.opacity=1},420)}themeToggle.addEventListener('click',()=>{light=!light;showThemeTransition();setTimeout(()=>{applyTheme();hideThemeTransition();}, 300)});applyTheme()
+
+function showThemeTransition() {
+  const transition = document.getElementById('themeTransition');
+  transition.classList.add('active');
+}
+
+function hideThemeTransition() {
+  const transition = document.getElementById('themeTransition');
+  transition.classList.remove('active');
+}
+
+const modalBackdrop=$('modalBackdrop'),modalCard=$('modalCard'),modalTitle=$('modalTitle'),modalSub=$('modalSub'),modalBody=$('modalBody'),modalActions=$('modalActions')
+function showModal(options){return new Promise(resolve=>{modalTitle.innerText=options.title||'Confirm';modalSub.innerText=options.sub||'';modalBody.innerHTML=options.bodyHtml||'';modalActions.innerHTML='';const secBtn=document.createElement('button');secBtn.className='btn';secBtn.innerText=options.secondaryText||'Cancel';secBtn.addEventListener('click',()=>{modalBackdrop.classList.remove('visible');setTimeout(()=>{modalBackdrop.style.display='none';resolve('secondary')},260)});const primBtn=document.createElement('button');primBtn.className='btn';primBtn.innerText=options.primaryText||'OK';primBtn.addEventListener('click',()=>{modalBackdrop.classList.remove('visible');setTimeout(()=>{modalBackdrop.style.display='none';resolve('primary')},260)});if(options.neutralText){const neuBtn=document.createElement('button');neuBtn.className='btn';neuBtn.innerText=options.neutralText;neuBtn.addEventListener('click',()=>{modalBackdrop.classList.remove('visible');setTimeout(()=>{modalBackdrop.style.display='none';resolve('neutral')},260)});modalActions.appendChild(neuBtn)}modalActions.appendChild(secBtn);modalActions.appendChild(primBtn);modalBackdrop.style.display='flex';requestAnimationFrame(()=>{modalBackdrop.classList.add('visible')})})}
+
+function showEncryptDownloadModal(filenameDefault,chosenExt){return new Promise(resolve=>{const bodyHtml=`<div><div class="small modal-note">Choose how you want to encrypted file to be saved. You can change the extension below.</div><div style="margin-top:10px;display:flex;gap:8px;align-items:center"><input id="modalFilename" style="flex:1;padding:8px;border-radius:8px;border:none;background:rgba(0,0,0,0.04)" value="${filenameDefault}"><select id="modalExt" class="file-type-select">${[[".enc",".enc (default)"],[".bin",".bin (binary)"],[".txt",".txt (base64)"],[".cvlt",".cvlt (CipherVault)"],[".secure",".secure (secure)"],[".locked",".locked (locked)"],[".protected",".protected (protected)"]].map(o=>`<option value="${o[0]}" ${o[0]===chosenExt?'selected':''}>${o[1]}</option>`).join('')}</select></div><div class="modal-note">Permission required to download the encrypted file to your device.</div></div>`;showModal({title:'Download encrypted file?',sub:'Confirm download and file extension',bodyHtml,primaryText:'Download',secondaryText:'Cancel'}).then(async(choice)=>{if(choice==='primary'){const filename=document.getElementById('modalFilename').value||filenameDefault;const ext=document.getElementById('modalExt').value||chosenExt;resolve({action:'download',filename:filename.endsWith(ext)?filename:filename+ext})}else resolve({action:'cancel'})})})}
+
+function showDecryptDownloadChooser(fileEntries){return new Promise(resolve=>{const itemsHtml=fileEntries.map((e,idx)=>`<div class="checkbox-item"><input type="checkbox" id="chk_${idx}" data-idx="${idx}" checked><label for="chk_${idx}" style="margin-left:6px">${e.name} — ${e.size}</label></div>`).join('');const bodyHtml=`<div class="small modal-note">Select which files to download. Unchecked files will not be saved locally.</div><div style="margin-top:10px" class="checkbox-list">${itemsHtml}</div>`;showModal({title:'Download decrypted files?',sub:'Pick files to save locally',bodyHtml,primaryText:'Download Selected',secondaryText:'Cancel'}).then(choice=>{if(choice==='primary'){const selected=[];fileEntries.forEach((f,idx)=>{const chk=document.getElementById('chk_'+idx);if(chk&&chk.checked)selected.push(f)});resolve({action:'download',selected})}else resolve({action:'cancel'})})})}
+
+function uint32ToBytes(n){const b=new Uint8Array(4);b[0]=(n>>>24)&0xFF;b[1]=(n>>>16)&0xFF;b[2]=(n>>>8)&0xFF;b[3]=n&0xFF;return b;}
+function bytesToUint32(b,offset=0){return (b[offset]<<24) | (b[offset+1]<<16) | (b[offset+2]<<8) | (b[offset+3]);}
+function makeMetaBoxEncrypted(password, metaObj, metaSaltBase64){
+  const metaKey = deriveKey(password, metaSaltBase64, 120000);
+  const metaJson = JSON.stringify(metaObj);
+  const ivWA = CryptoJS.lib.WordArray.random(16);
+  const enc = CryptoJS.AES.encrypt(metaJson, metaKey, {iv: ivWA, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7});
+  const metaBoxObj = {iv: CryptoJS.enc.Base64.stringify(ivWA), cipher: enc.ciphertext.toString(CryptoJS.enc.Base64)};
+  return CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(JSON.stringify(metaBoxObj)));
+}
+function decryptMetaBox(password, metaBoxBase64, metaSaltBase64){
+  const metaKey = deriveKey(password, metaSaltBase64, 120000);
+  const metaBoxJson = CryptoJS.enc.Utf8.stringify(CryptoJS.enc.Base64.parse(metaBoxBase64));
+  let metaBoxObj;
+  try{ metaBoxObj = JSON.parse(metaBoxJson); }catch(e){ throw new Error('Invalid metaBox format'); }
+  const ivWA = CryptoJS.enc.Base64.parse(metaBoxObj.iv);
+  const cipherWA = CryptoJS.enc.Base64.parse(metaBoxObj.cipher);
+  const decrypted = CryptoJS.AES.decrypt({ciphertext:cipherWA}, metaKey, {iv:ivWA, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7});
+  const plain = decrypted.toString(CryptoJS.enc.Utf8);
+  if(!plain) throw new Error('Meta decryption failed (wrong password?)');
+  return JSON.parse(plain);
+}
+
+async function encryptFilesAdvanced(password, selectedFiles){
+  showProcessModal(true);
+  updateProcessModalProgress(2, 'Preparing zip');
+  
+  document.querySelector('.card').classList.add('processing-shimmer');
+  
+  const zip = new JSZip();
+  selectedFiles.forEach(f=>zip.file(f.name,f));
+  const zippedUint8 = await zip.generateAsync({type:'uint8array'}, meta=>{ 
+    const pct = meta.percent*0.25;
+    updateProcessModalProgress(pct, `Zipping ${Math.round(meta.percent)}%`);
+    setProgress(pct, `Zipping ${Math.round(meta.percent)}%`);
+  });
+  
+  updateProcessModalProgress(28, 'Encoding base64');
+  setProgress(28,'Encoding base64');
+  
+  const base64Plain = await new Promise(resolve => {
+    requestAnimationFrame(() => {
+      resolve(arrayBufferToBase64(zippedUint8.buffer));
+    });
+  });
+  
+  const integrityHash = CryptoJS.SHA256(CryptoJS.enc.Base64.parse(base64Plain)).toString(CryptoJS.enc.Hex);
+
+  updateProcessModalProgress(36, 'Deriving keys');
+  setProgress(36,'Deriving keys');
+  
+  const salt1 = genSaltBase64(); 
+  const iv1 = genIVBase64(); 
+  const iterations1 = 150000;
+  const key1 = await new Promise(resolve => {
+    setTimeout(() => {
+      resolve(deriveKey(password, salt1, iterations1));
+    }, 0);
+  });
+  
+  const salt2 = genSaltBase64(); 
+  const iv2 = genIVBase64(); 
+  const iterations2 = 200000;
+  const key2 = await new Promise(resolve => {
+    setTimeout(() => {
+      resolve(deriveKey(password, salt2, iterations2));
+    }, 0);
+  });
+
+  updateProcessModalProgress(44, 'Encrypting (AES #1 and AES #2)');
+  setProgress(44,'Encrypting (AES #1 and AES #2)');
+  
+  const iv1WA = CryptoJS.enc.Base64.parse(iv1);
+  const iv2WA = CryptoJS.enc.Base64.parse(iv2);
+  
+  const [enc1, enc2] = await Promise.all([
+    new Promise(resolve => {
+      setTimeout(() => {
+        resolve(CryptoJS.AES.encrypt(base64Plain, key1, {iv: iv1WA, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7}));
+      }, 0);
+    }),
+    new Promise(resolve => {
+      setTimeout(() => {
+        resolve(CryptoJS.AES.encrypt(base64Plain, key2, {iv: iv2WA, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7}));
+      }, 0);
+    })
+  ]);
+  
+  const cipher1Base64 = enc1.ciphertext.toString(CryptoJS.enc.Base64);
+  const cipher2Base64 = enc2.ciphertext.toString(CryptoJS.enc.Base64);
+
+  updateProcessModalProgress(60, 'Merging ciphertexts');
+  setProgress(60,'Merging ciphertexts');
+  
+  const c1bytes = base64ToUint8Array(cipher1Base64);
+  const c2bytes = base64ToUint8Array(cipher2Base64);
+  const lenC1 = c1bytes.length;
+  const merged = new Uint8Array(4 + lenC1 + c2bytes.length);
+  merged.set(uint32ToBytes(lenC1), 0);
+  merged.set(c1bytes, 4);
+  merged.set(c2bytes, 4 + lenC1);
+
+  updateProcessModalProgress(70, 'Applying XOR mask');
+  setProgress(70,'Applying XOR mask');
+  
+  const xorSalt = genSaltBase64();
+  const mask = await new Promise(resolve => {
+    setTimeout(() => {
+      resolve(generateMaskBytes(merged.length, password, xorSalt));
+    }, 0);
+  });
+  
+  const scrambled = await new Promise(resolve => {
+    setTimeout(() => {
+      const result = new Uint8Array(merged.length);
+      for(let i=0;i<merged.length;i++) result[i] = merged[i] ^ mask[i];
+      resolve(result);
+    }, 0);
+  });
+
+  updateProcessModalProgress(78, 'Computing HMAC');
+  setProgress(78,'Computing HMAC');
+  
+  const hmacSalt = genSaltBase64();
+  const hmacKey = await new Promise(resolve => {
+    setTimeout(() => {
+      resolve(deriveKey(password, hmacSalt, 120000));
+    }, 0);
+  });
+  
+  const hmacBase64 = await new Promise(resolve => {
+    setTimeout(() => {
+      resolve(computeHmacBase64(scrambled, hmacKey));
+    }, 0);
+  });
+
+  updateProcessModalProgress(84, 'Packaging metadata');
+  setProgress(84,'Packaging metadata');
+  
+  const metaSalt = genSaltBase64();
+  const metaObj = {salt1,salt2,iv1,iv2,iterations1,iterations2,xorSalt,hmacSalt};
+  const metaBoxBase64 = await new Promise(resolve => {
+    setTimeout(() => {
+      resolve(makeMetaBoxEncrypted(password, metaObj, metaSalt));
+    }, 0);
+  });
+
+  updateProcessModalProgress(90, 'Finalizing envelope');
+  setProgress(90,'Finalizing envelope');
+  
+  const envelope = {
+    version: 2,
+    metaSalt: metaSalt,
+    metaBox: metaBoxBase64,
+    payload: arrayBufferToBase64(scrambled.buffer),
+    hmac: hmacBase64,
+    integrity: { sha256: integrityHash },
+    metaComment: 'CipherVault Pro envelope (v2): double-aes parallel + xor + hmac + encrypted meta'
+  };
+
+  updateProcessModalProgress(96, 'Preparing download');
+  setProgress(96,'Preparing download');
+  await new Promise(resolve => setTimeout(resolve, 300));
+  document.querySelector('.card').classList.remove('processing-shimmer');
+  
+  return envelope;
+}
+
+async function decryptEnvelopeAdvanced(envelope, password){
+  showProcessModal(false); 
+  document.querySelector('.card').classList.add('processing-shimmer');
+  
+  if(!envelope.version || envelope.version === 1){
+    if(!envelope.cipher || !envelope.kdf || !envelope.iv) throw new Error('Invalid legacy envelope');
+    const salt = envelope.kdf.salt;
+    const iterations = envelope.kdf.iterations || 150000;
+    const iv = envelope.iv;
+    const key = await new Promise(resolve => {
+      setTimeout(() => {
+        resolve(deriveKey(password, salt, iterations));
+      }, 0);
+    });
+    const ivWA = CryptoJS.enc.Base64.parse(iv);
+    const cipherWA = CryptoJS.enc.Base64.parse(envelope.cipher);
+    const decryptObj = await new Promise(resolve => {
+      setTimeout(() => {
+        resolve(CryptoJS.AES.decrypt({ciphertext:cipherWA}, key, {iv:ivWA,mode:CryptoJS.mode.CBC,padding:CryptoJS.pad.Pkcs7}));
+      }, 0);
+    });
+    const base64Plain = decryptObj.toString(CryptoJS.enc.Utf8);
+    if(!base64Plain) throw new Error('Wrong password or corrupted legacy file');
+    
+    document.querySelector('.card').classList.remove('processing-shimmer');
+    
+    return { type:'legacy', base64: base64Plain, integrity: envelope.integrity };
+  }
+
+  if(envelope.version === 2){
+    if(!envelope.metaBox || !envelope.metaSalt) throw new Error('Missing meta info');
+    const metaObj = await new Promise(resolve => {
+      setTimeout(() => {
+        try {
+          const result = decryptMetaBox(password, envelope.metaBox, envelope.metaSalt);
+          resolve(result);
+        } catch (e) {
+          throw e;
+        }
+      }, 0);
+    });
+    
+    const {salt1,salt2,iv1,iv2,iterations1,iterations2,xorSalt,hmacSalt} = metaObj;
+    const scrambled = base64ToUint8Array(envelope.payload);
+    
+    const hmacKey = await new Promise(resolve => {
+      setTimeout(() => {
+        resolve(deriveKey(password, hmacSalt, 120000));
+      }, 0);
+    });
+    
+    const macCheck = await new Promise(resolve => {
+      setTimeout(() => {
+        resolve(computeHmacBase64(scrambled, hmacKey));
+      }, 0);
+    });
+    
+    if(macCheck !== envelope.hmac) throw new Error('HMAC mismatch — file tampering or wrong password');
+
+    const mask = await new Promise(resolve => {
+      setTimeout(() => {
+        resolve(generateMaskBytes(scrambled.length, password, xorSalt));
+      }, 0);
+    });
+    
+    const merged = await new Promise(resolve => {
+      setTimeout(() => {
+        const result = new Uint8Array(scrambled.length);
+        for(let i=0;i<scrambled.length;i++) result[i] = scrambled[i] ^ mask[i];
+        resolve(result);
+      }, 0);
+    });
+
+    const lenC1 = bytesToUint32(merged,0);
+    const c1bytes = merged.slice(4, 4 + lenC1);
+    const c2bytes = merged.slice(4 + lenC1);
+
+    const [key1, key2] = await Promise.all([
+      new Promise(resolve => {
+        setTimeout(() => {
+          resolve(deriveKey(password, salt1, iterations1||150000));
+        }, 0);
+      }),
+      new Promise(resolve => {
+        setTimeout(() => {
+          resolve(deriveKey(password, salt2, iterations2||200000));
+        }, 0);
+      })
+    ]);
+    
+    const iv1WA = CryptoJS.enc.Base64.parse(iv1);
+    const iv2WA = CryptoJS.enc.Base64.parse(iv2);
+    const cipher1WA = uint8ArrayToWordArray(c1bytes);
+    const cipher2WA = uint8ArrayToWordArray(c2bytes);
+    
+    const [plain1, plain2] = await Promise.all([
+      new Promise(resolve => {
+        setTimeout(() => {
+          resolve(CryptoJS.AES.decrypt({ciphertext:cipher1WA}, key1, {iv:iv1WA, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7}).toString(CryptoJS.enc.Utf8));
+        }, 0);
+      }),
+      new Promise(resolve => {
+        setTimeout(() => {
+          resolve(CryptoJS.AES.decrypt({ciphertext:cipher2WA}, key2, {iv:iv2WA, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7}).toString(CryptoJS.enc.Utf8));
+        }, 0);
+      })
+    ]);
+    
+    if(!plain1 && !plain2) throw new Error('Decryption failed — wrong password or corrupted data');
+
+    const computed1 = plain1 ? CryptoJS.SHA256(CryptoJS.enc.Base64.parse(plain1)).toString(CryptoJS.enc.Hex) : null;
+    const computed2 = plain2 ? CryptoJS.SHA256(CryptoJS.enc.Base64.parse(plain2)).toString(CryptoJS.enc.Hex) : null;
+    let chosenBase64 = null;
+    if(envelope.integrity && envelope.integrity.sha256){
+      if(computed1 && computed1 === envelope.integrity.sha256) chosenBase64 = plain1;
+      else if(computed2 && computed2 === envelope.integrity.sha256) chosenBase64 = plain2;
+      else {
+        chosenBase64 = plain1 || plain2;
+      }
+    } else {
+      chosenBase64 = plain1 || plain2;
+    }
+
+    if(!chosenBase64) throw new Error('Unable to recover plaintext (integrity failed)');
+    
+    document.querySelector('.card').classList.remove('processing-shimmer');
+    
+    return { type:'v2', base64: chosenBase64, integrity: envelope.integrity };
+  }
+
+  document.querySelector('.card').classList.remove('processing-shimmer');
+  
+  throw new Error('Unsupported envelope version');
+}
+
+function showToast(title,icon='success',timer=1600){Swal.fire({title,icon,toast:true,position:'top-end',showConfirmButton:false,timer})}
+function showError(title,text=''){Swal.fire({icon:'error',title,text})}
+async function doButtonRippleEffect(buttonEl,kind='encrypt'){const rect=buttonEl.getBoundingClientRect();const ripple=document.createElement('div');ripple.className='ripple-elem';ripple.style.left=(rect.width/2)+'px';ripple.style.top=(rect.height/2)+'px';ripple.style.width='0px';ripple.style.height='0px';ripple.style.opacity='0';ripple.style.background=(kind==='encrypt')?getComputedStyle(document.documentElement).getPropertyValue('--ripple-encrypt'):getComputedStyle(document.documentElement).getPropertyValue('--ripple-decrypt');ripple.style.boxShadow=`0 10px 40px ${ripple.style.background}`;buttonEl.appendChild(ripple);const color=ripple.style.background;ripple.animate([{width:'0px',height:'0px',opacity:0.95,transform:'translate(-50%,-50%) scale(0.3)'},{width:Math.max(rect.width,rect.height)*6+'px',height:Math.max(rect.width,rect.height)*6+'px',opacity:0,transform:'translate(-50%,-50%) scale(1)'}],{duration:680,easing:'cubic-bezier(.2,.9,.2,1)'});const originalBox=buttonEl.style.boxShadow;buttonEl.style.boxShadow=`0 18px 48px ${color}, 0 6px 16px rgba(0,0,0,0.28)`;await new Promise(r=>setTimeout(r,700));buttonEl.style.boxShadow=originalBox;ripple.remove()}
+
+function createDropRipple(x, y, parent) {
+  const ripple = document.createElement('div');
+  ripple.className = 'drop-ripple';
+  ripple.style.width = '30px';
+  ripple.style.height = '30px';
+  ripple.style.left = x + 'px';
+  ripple.style.top = y + 'px';
+  parent.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 800);
+}
+
+function addSparkle(button) {
+  const sparkle = document.createElement('div');
+  sparkle.className = 'sparkle';
+  
+  const rect = button.getBoundingClientRect();
+  const x = Math.random() * rect.width;
+  const y = Math.random() * rect.height;
+  
+  sparkle.style.left = x + 'px';
+  sparkle.style.top = y + 'px';
+  
+  button.appendChild(sparkle);
+  
+  setTimeout(() => sparkle.remove(), 2000);
+}
+
+dropArea.addEventListener('click', (e) => {
+  const rect = dropArea.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  createDropRipple(x, y, dropArea);
+  fileInput.click();
+});
+
+dropArea.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  dropArea.classList.add('dragover');
+  
+  const rect = dropArea.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  createDropRipple(x, y, dropArea);
+  
+  const liquid = dropArea.querySelector('.drop-liquid');
+  if (liquid) {
+    liquid.style.setProperty('--x', `${x}px`);
+    liquid.style.setProperty('--y', `${y}px`);
+  }
+});
+
+dropArea.addEventListener('mousemove', (e) => {
+  const rect = dropArea.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  const liquid = dropArea.querySelector('.drop-liquid');
+  if (liquid) {
+    liquid.style.setProperty('--x', `${x}px`);
+    liquid.style.setProperty('--y', `${y}px`);
+  }
+});
+
+ $('savePwdBtn').addEventListener('click',async()=>{const pwd=passwordInput.value||'';if(!pwd)return showError('Provide a password to save as a key file');await doButtonRippleEffect($('savePwdBtn'),'encrypt');const choice=await showModal({title:'Save password as .key file?',sub:'Warning: this will save your password in plain text. Anyone with this file can decrypt your files.',bodyHtml:`<div class="modal-note">Do you want to save your password to a local <code>ciphervault.key</code> file?</div>`,primaryText:'Save Key',secondaryText:'Cancel'});if(choice==='primary'){const blob=new Blob([pwd],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ciphervault.key';a.click();showToast('Saved .key file (plain text). Keep it safe.')}else{showToast('Key save canceled','info')}})
+
+encryptBtn.addEventListener('click',async()=>{try{if(selectedFiles.length===0)return showError('No files selected');const password=passwordInput.value||'';if(!password)return showError('Please enter a password');await doButtonRippleEffect(encryptBtn,'encrypt');const confirm=await showModal({title:'Encrypt files (advanced)?',sub:`You are encrypting ${selectedFiles.length} file(s) with new advanced pipeline. Proceed?`,bodyHtml:'<div class="modal-note">This uses double-AES (parallel) + XOR + HMAC + encrypted metadata. Keep the password safe.</div>',primaryText:'Yes, encrypt',secondaryText:'Cancel'});if(confirm!=='primary')return showToast('Encryption canceled','info');triggerParticleBoost('encrypt');const envelope = await encryptFilesAdvanced(password, selectedFiles);setProgress(96,'Packaging');const defaultName = selectedFiles.length===1?selectedFiles[0].name + encTypeSelect.value : 'ciphervault_bundle'+encTypeSelect.value;const userChoice = await showEncryptDownloadModal(defaultName.replace(encTypeSelect.value,''), encTypeSelect.value);if(userChoice.action==='download'){const ext = userChoice.filename.slice(userChoice.filename.lastIndexOf('.'));let blob;if(ext==='.txt'||ext==='.enc'||ext==='.cvlt'||ext==='.secure'||ext==='.locked'||ext==='.protected'){blob = new Blob([JSON.stringify(envelope, null, 0)],{type:'application/json'});}else if(ext==='.bin'){blob = new Blob([JSON.stringify(envelope, null, 0)],{type:'application/octet-stream'});}else{blob = new Blob([JSON.stringify(envelope, null, 0)],{type:'application/json'});}const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=userChoice.filename;a.click();showToast('Encrypted file downloaded','success');encryptBtn.classList.add('success');setTimeout(() => encryptBtn.classList.remove('success'), 1000);addSparkle(encryptBtn)}else{showToast('Download skipped','info')}setProgress(100,'Done');}catch(err){console.error(err);showError('Encryption failed',err.message||String(err));setProgress(0,'Idle');}})
+
+decryptBtn.addEventListener('click',async()=>{try{if(selectedFiles.length===0)return showError('Please select encrypted file to decrypt (drag or browse).');if(selectedFiles.length>1){await showModal({title:'Multiple files selected',sub:'Please select exactly one file for decryption.',bodyHtml:'',primaryText:'OK',secondaryText:'Cancel'});return}const file=selectedFiles[0];await doButtonRippleEffect(decryptBtn,'decrypt');triggerParticleBoost('decrypt');showProcessModal(false); 
+  updateProcessModalProgress(5,'Reading file');setProgress(5,'Reading file');
+  
+  const txt = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = reject;
+    reader.readAsText(file);
+  });
+  
+  let envelope;try{envelope=JSON.parse(txt)}catch(e){return showError('Invalid file — not JSON or corrupted')}if(!envelope){return showError('Invalid envelope format')}
+  
+  const password=passwordInput.value||'';if(!password){return showError('Enter password to decrypt')}updateProcessModalProgress(12,'Deriving keys & verifying');setProgress(12,'Deriving keys & verifying');let plainResult;try{plainResult = await decryptEnvelopeAdvanced(envelope, password);}catch(err){setProgress(0,'Idle');return showError('Decryption failed', err.message||String(err))}updateProcessModalProgress(40,'Decoding base64');setProgress(40,'Decoding base64');const uint8 = base64ToUint8Array(plainResult.base64);updateProcessModalProgress(56,'Loading zip');setProgress(56,'Loading zip');const zip = await JSZip.loadAsync(uint8,{createFolders:true});const entries = Object.keys(zip.files);const extracted=[];let cnt=0;for(const entryName of entries){const entry = zip.files[entryName];if(entry.dir) continue;const pct = 56+(40*(++cnt/entries.length));updateProcessModalProgress(pct,`Extracting ${entryName}`);setProgress(pct,`Extracting ${entryName}`);const content = await entry.async('uint8array');extracted.push({name:entryName,content,size:humanSize(content.length)})}const chooser = await showDecryptDownloadChooser(extracted);if(chooser.action==='download'&&chooser.selected.length>0){for(const fileObj of chooser.selected){const blob=new Blob([fileObj.content]);const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fileObj.name;a.click();await new Promise(r=>setTimeout(r,200))}showToast('Selected files downloaded','success');decryptBtn.classList.add('success');setTimeout(() => decryptBtn.classList.remove('success'), 1000);addSparkle(decryptBtn)}else{showToast('No files were downloaded','info')}downloadArea.innerHTML='';extracted.forEach(e=>{const wrapper=document.createElement('div');wrapper.style.display='flex';wrapper.style.justifyContent='space-between';wrapper.style.alignItems='center';wrapper.style.background='linear-gradient(90deg, rgba(255,255,255,0.01), transparent)';wrapper.style.padding='8px';wrapper.style.borderRadius='8px';wrapper.innerHTML=`<div style="display:flex;gap:10px;align-items:center"><div style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,0.02);display:flex;align-items:center;justify-content:center">${fileIconForName(e.name)}</div><div><div style="font-weight:600">${e.name}</div><div class="small" style="color:var(--muted)">${humanSize(e.content.length||0)}</div></div></div>`;const dlBtn=document.createElement('button');dlBtn.className='btn rgb-pulse';dlBtn.style.padding='8px 10px';dlBtn.innerHTML='<i class="fa-solid fa-download"></i> Download';dlBtn.addEventListener('click',()=>{const blob=new Blob([e.content]);const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=e.name;a.click()});wrapper.appendChild(dlBtn);downloadArea.appendChild(wrapper)});setProgress(100,'Done');}catch(err){console.error(err);showError('Decryption error',err.message||String(err));setProgress(0,'Idle');}})
+
+fileInput.addEventListener('change',e=>handleFiles(e.target.files));
+['dragenter','dragover'].forEach(evt=>dropArea.addEventListener(evt,e=>{e.preventDefault();e.stopPropagation()}));
+['dragleave','drop'].forEach(evt=>dropArea.addEventListener(evt,e=>{e.preventDefault();e.stopPropagation();dropArea.classList.remove('dragover')}));
+dropArea.addEventListener('drop',e=>{const dt=e.dataTransfer;if(dt&&dt.files)handleFiles(dt.files)})
+function handleFiles(listObj){const arr=Array.from(listObj);arr.forEach(f=>selectedFiles.push(f));renderFileList()}
+
+function showDashboard(){currentMode=null;dashboardEl.style.opacity='1';dashboardEl.style.pointerEvents='auto';appContainer.classList.add('hidden-by-dashboard');encryptBtn.style.display='none';decryptBtn.style.display='none';areaBackBtn.style.display='none';passwordSection.classList.remove('hidden');regularSection.classList.remove('hidden');}
+function enterMode(mode){currentMode=mode;dashboardEl.style.opacity='0';dashboardEl.style.pointerEvents='none';setTimeout(()=>{dashboardEl.style.display='none'},420);appContainer.classList.remove('hidden-by-dashboard');if(mode==='encrypt'){appContainer.classList.add('mode-encrypt');appContainer.classList.remove('mode-decrypt');areaBackBtn.style.display='inline-flex';encryptBtn.style.display='inline-block';decryptBtn.style.display='none';passwordSection.classList.remove('hidden');regularSection.classList.remove('hidden');setTimeout(()=>{appContainer.querySelector('.card').classList.add('focus-left')},120);setTimeout(()=>{appContainer.querySelector('.card').classList.remove('focus-left')},1600);passwordInput.focus()}else if(mode==='decrypt'){appContainer.classList.add('mode-decrypt');appContainer.classList.remove('mode-encrypt');areaBackBtn.style.display='inline-flex';encryptBtn.style.display='none';decryptBtn.style.display='inline-block';passwordSection.classList.remove('hidden');regularSection.classList.remove('hidden');setTimeout(()=>{appContainer.querySelector('.card').classList.add('focus-left')},120);setTimeout(()=>{appContainer.querySelector('.card').classList.remove('focus-left')},1600);dropArea.focus()}appContainer.style.display='grid'}
+dashEncryptBtn.addEventListener('click',()=>{dashEncryptBtn.animate([{transform:'translateY(0)'},{transform:'translateY(-8px)'},{transform:'translateY(0)'}],{duration:500,easing:'cubic-bezier(.2,.9,.2,1)'});enterMode('encrypt')})
+dashDecryptBtn.addEventListener('click',()=>{dashDecryptBtn.animate([{transform:'translateY(0)'},{transform:'translateY(-8px)'},{transform:'translateY(0)'}],{duration:500,easing:'cubic-bezier(.2,.9,.2,1)'});enterMode('decrypt')})
+areaBackBtn.addEventListener('click',()=>{dashboardEl.style.display='flex';setTimeout(()=>{dashboardEl.style.opacity='1';dashboardEl.style.pointerEvents='auto'},20);appContainer.classList.add('hidden-by-dashboard');setTimeout(()=>{appContainer.style.display='grid';appContainer.classList.remove('mode-encrypt','mode-decrypt');areaBackBtn.style.display='none';encryptBtn.style.display='none';decryptBtn.style.display='none';passwordSection.classList.remove('hidden');regularSection.classList.remove('hidden');},420)})
+
+function setProgress(pct,text){progressEl.style.width=pct+'%';progressText.innerText=text||(pct===100?'Done':'Working');progressPct.innerText=Math.round(pct)+'%';if(pct===100){const pulse=document.createElement('div');pulse.className='progress-pulse';document.querySelector('.progress-bar').appendChild(pulse);setTimeout(()=>pulse.remove(),2000)}}
+
+document.addEventListener('visibilitychange',()=>{if(document.hidden)setProgress(0,'Idle')});
+renderFileList();
+setProgress(0,'Idle');
+(function initAppVisibility(){dashboardEl.style.display='flex';dashboardEl.style.opacity='1';dashboardEl.style.pointerEvents='auto';appContainer.classList.add('hidden-by-dashboard');appContainer.style.display='grid';areaBackBtn.style.display='none';encryptBtn.style.display='none';decryptBtn.style.display='none';passwordSection.classList.remove('hidden');regularSection.classList.remove('hidden');})();
+
+const originalSetProgress = setProgress;
+setProgress = function(pct, text) {
+  originalSetProgress(pct, text);
+  if (pct === 100) {
+    for (let i = 0; i < 30; i++) {
+      const angle = (Math.PI * 2 * i) / 30;
+      const velocity = 1 + Math.random() * 4;
+      particles.push({
+        x: globalState.pointer.x,
+        y: globalState.pointer.y,
+        vx: Math.cos(angle) * velocity,
+        vy: Math.sin(angle) * velocity,
+        size: 0.5 + Math.random() * 2,
+        baseSize: 0.5 + Math.random() * 2,
+        hue: colorPaletteForTheme(globalState.theme).particles[Math.floor(Math.random() * colorPaletteForTheme(globalState.theme).particles.length)],
+        age: 0,
+        alpha: 0.9
+      });
+    }
+  }
+};
+
+document.addEventListener('mousemove', (e) => {
+  if (globalState.activity === 'idle') {
+    const x = e.clientX / window.innerWidth - 0.5;
+    const y = e.clientY / window.innerHeight - 0.5;
+    
+    particles.forEach(particle => {
+      particle.vx += x * 0.008;
+      particle.vy += y * 0.008;
+    });
+  }
+});
+
+const brandMark = document.getElementById('brandMark');
+const brandDash = document.getElementById('brandDash');
+[brandMark, brandDash].forEach(el => {
+  if (el) {
+    el.addEventListener('mouseenter', () => {
+      el.style.animation = 'morph 3s ease-in-out infinite';
+    });
+    el.addEventListener('mouseleave', () => {
+      el.style.animation = '';
+    });
+  }
+});
+
+document.querySelectorAll('.btn').forEach(btn => {
+  btn.addEventListener('mouseenter', () => {
+    btn.classList.add('neon-glow');
+  });
+  btn.addEventListener('mouseleave', () => {
+    btn.classList.remove('neon-glow');
+  });
+});
+
+const originalShowError = showError;
+showError = function(title, text='') {
+  
+  setTimeout(() => {
+    const modalTitle = document.querySelector('.swal2-title');
+    if (modalTitle) {
+      modalTitle.classList.add('glitch');
+      modalTitle.setAttribute('data-text', modalTitle.textContent);
+    }
+  }, 100);
+  
+  return originalShowError(title, text);
+};
+
+document.querySelectorAll('.card, .panel').forEach(card => {
+  card.addEventListener('mouseenter', () => {
+    card.style.transform = 'translateY(-5px) rotateX(5deg) scale(1.02)';
+  });
+  card.addEventListener('mouseleave', () => {
+    card.style.transform = '';
+  });
+});
+
+themeToggle.addEventListener('mousemove', (e) => {
+  const rect = themeToggle.getBoundingClientRect();
+  const x = e.clientX - rect.left - rect.width / 2;
+  const y = e.clientY - rect.top - rect.height / 2;
+  
+  themeToggle.style.transform = `translate(${x * 0.3}px, ${y * 0.3}px) scale(1.1) rotate(${x * 0.1}deg)`;
+});
+
+themeToggle.addEventListener('mouseleave', () => {
+  themeToggle.style.transform = '';
+});
+
+const originalShowToast = showToast;
+showToast = function(title, icon='success', timer=1600) {
+  const result = originalShowToast(title, icon, timer);
+  
+  if (icon === 'success') {
+    setTimeout(() => {
+      const toast = document.querySelector('.swal2-container');
+      if (toast) {
+        for (let i = 0; i < 5; i++) {
+          setTimeout(() => {
+            const sparkle = document.createElement('div');
+            sparkle.className = 'sparkle';
+            sparkle.style.left = `${Math.random() * 100}%`;
+            sparkle.style.top = `${Math.random() * 100}%`;
+            toast.appendChild(sparkle);
+            setTimeout(() => sparkle.remove(), 2000);
+          }, i * 200);
+        }
+      }
+    }, 300);
+  }
+  
+  return result;
+};
+
+document.querySelectorAll('.card, .panel').forEach(element => {
+  const liquid = document.createElement('div');
+  liquid.className = 'liquid-shape';
+  element.appendChild(liquid);
+});
+
+setInterval(() => {
+  if (Math.random() < 0.1) {
+    const particle = document.createElement('div');
+    particle.className = 'floating-particle';
+    particle.style.left = `${Math.random() * 100}%`;
+    particle.style.animationDuration = `${10 + Math.random() * 20}s`;
+    particle.style.width = `${2 + Math.random() * 4}px`;
+    particle.style.height = particle.style.width;
+    document.getElementById('floatingParticles').appendChild(particle);
+    
+    setTimeout(() => particle.remove(), 20000);
+  }
+}, 3000);
+
+})(); 
+
+</script>
+</body>
+</html>
